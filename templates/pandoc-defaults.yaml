@@ -2,7 +2,7 @@
 from: markdown
 to: docx
 standalone: true
-reference-doc: templates/公文模板.docx
+reference-doc: templates/official-template.docx
 highlight-style: pygments
 
 metadata:

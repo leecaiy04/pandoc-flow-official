@@ -25,7 +25,7 @@ async fn convert_markdown<R: Runtime>(
     
     // 我们将 templates 文件夹放在资源目录下
     let defaults_file = resource_dir.join("templates/pandoc-defaults.yaml");
-    let template_file = resource_dir.join("templates/公文模板.docx");
+    let template_file = resource_dir.join("templates/official-template.docx");
 
     if !defaults_file.exists() && !template_file.exists() {
          return Err("找不到模板文件".into());

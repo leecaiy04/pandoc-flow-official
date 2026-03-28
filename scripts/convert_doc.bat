@@ -6,7 +6,7 @@ REM 使用方法: scripts\convert_doc.bat <输入文件.md> [输出文件.docx]
 
 set "PROJECT_ROOT=%~dp0.."
 set "DEFAULTS_FILE=%PROJECT_ROOT%\templates\pandoc-defaults.yaml"
-set "TEMPLATE=%PROJECT_ROOT%\templates\公文模板.docx"
+set "TEMPLATE=%PROJECT_ROOT%\templates\official-template.docx"
 
 if "%~1"=="" (
     echo 使用方法: %0 ^<输入文件.md^> [输出文件.docx]

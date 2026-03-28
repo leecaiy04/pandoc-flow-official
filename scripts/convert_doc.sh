@@ -7,7 +7,7 @@
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PROJECT_ROOT="$( dirname "$SCRIPT_DIR" )"
 DEFAULTS_FILE="$PROJECT_ROOT/templates/pandoc-defaults.yaml"
-TEMPLATE="$PROJECT_ROOT/templates/公文模板.docx"
+TEMPLATE="$PROJECT_ROOT/templates/official-template.docx"
 
 if [ $# -lt 1 ]; then
     echo "使用方法: $0 <输入文件.md> [输出文件.docx]"

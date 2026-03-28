@@ -31,7 +31,7 @@ pandoc-flow/
 │   ├── convert_doc.sh             # Linux/Mac 智能转换脚本 ⭐
 │   └── install_typora_config.bat # Typora 一键部署工具 ⭐
 ├── 📂 templates/                   # 核心格式模板
-│   ├── 公文模板.docx               # Word 核心样式母版 ⭐
+│   ├── official-template.docx      # Word 核心样式母版 ⭐
 │   ├── pandoc-defaults.yaml       # Pandoc 统一配置参数 ⭐
 │   └── reference.docx              # 备用参考文档
 ├── 📂 docs/                        # 深度文档库
@@ -109,7 +109,7 @@ scripts\convert_doc.bat examples/示例文档.md output/测试输出.docx
 - **Q: 脚本运行报错 "pandoc not found"？**
   - A: 请将 Pandoc 的安装路径添加到系统的环境变量 PATH 中。
 - **Q: 如何修改页边距？**
-  - A: 直接在 Word 中打开 `templates/公文模板.docx`，修改“页面设置”后保存即可。
+  - A: 直接在 Word 中打开 `templates/official-template.docx`，修改“页面设置”后保存即可。
 
 ---
 
