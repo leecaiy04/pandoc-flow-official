@@ -1,0 +1,19 @@
+# Pandoc Defaults for Official Document Conversion (GB/T 9704-2012)
+from: markdown
+to: docx
+standalone: true
+reference-doc: templates/公文模板.docx
+highlight-style: pygments
+
+metadata:
+  title: "公文文档"
+
+variables:
+  # Standard fonts for official documents
+  mainfont: "仿宋_GB2312"
+  CJKmainfont: "方正小标宋简体"
+  # Support for secondary fonts via styles in reference-doc
+  # Heading 1 -> 方正小标宋简体
+  # Heading 2 -> 黑体
+  # Heading 3 -> 楷体_GB2312
+  # Heading 4 -> 仿宋_GB2312

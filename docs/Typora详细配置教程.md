@@ -14,7 +14,23 @@ pandoc --version
 ```
 应显示pandoc版本信息。
 
-## 🔧 方法一：使用Typora内置导出功能（推荐）
+## 🔧 方法一：使用自动配置脚本（推荐）
+
+这是最简单、最可靠的方法，脚本会自动处理路径和配置。
+
+1. **运行脚本**：
+   - 打开项目文件夹中的 `scripts` 目录。
+   - 双击运行 `install_typora_config.bat`。
+2. **检查输出**：
+   - 脚本会检查 Typora、Pandoc 和字体安装情况。
+   - 脚本会自动为您配置自定义导出格式 "公文格式Word"。
+3. **完成配置**：
+   - 重启 Typora。
+   - 现在您可以在 **文件** -> **导出** 中看到 "公文格式Word"，或者直接按 `Ctrl+Shift+D` 使用。
+
+## 🔧 方法二：手动配置导出功能
+
+如果您想手动配置，请按照以下步骤操作：
 
 ### 步骤1：打开偏好设置
 
@@ -29,29 +45,26 @@ pandoc --version
 
 ### 步骤3：填写配置信息
 
-#### 基本设置
+#### 推荐方案（使用脚本）
 ```
 格式名称：公文格式 Word
-命令：convert_doc.bat
+命令：{项目根目录}\scripts\convert_doc.bat
 参数："${currentFilePath}" "${currentFilePath}.docx"
-工作目录：D:\Code\Template\pandoc
+工作目录：{项目根目录}
 ```
 
-#### 详细设置（如果使用直接pandoc命令）
+#### 进阶方案（直接使用 Pandoc）
 ```
-格式名称：公文格式 Word
+格式名称：公文格式 Word (Pandoc)
 命令：pandoc
-参数："${currentFilePath}" --reference-doc="D:\Code\Template\pandoc\公文模板.docx" --variable CJKmainfont="方正小标宋简体" -o "${currentFilePath}.docx"
-工作目录：D:\Code\Template\pandoc
+参数：-d "{项目根目录}\templates\pandoc-defaults.yaml" "${currentFilePath}" -o "${currentFilePath}.docx"
+工作目录：{项目根目录}
 ```
 
-### 步骤4：设置快捷键（可选）
+> [!IMPORTANT]
+> 请务必将 `{项目根目录}` 替换为您本地克隆该仓库的实际绝对路径（例如 `C:\Users\Admin\pandoc-flow`）。
 
-1. 切换到 **快捷键** 标签页
-2. 找到新添加的 "公文格式 Word" 命令
-3. 点击右侧，设置快捷键（如 `Ctrl+Shift+D`）
-
-## 🔧 方法二：使用Typora主题文件
+## 🔧 方法三：使用Typora主题文件
 
 ### 创建自定义主题
 
@@ -236,9 +249,9 @@ a:hover {
   "customExport": {
     "official-doc": {
       "name": "公文格式Word",
-      "command": "convert_doc.bat",
+      "command": "C:\\path\\to\\project\\scripts\\convert_doc.bat",
       "args": ["${currentFilePath}", "${currentFilePath}.docx"],
-      "workingDir": "D:\\Code\\Template\\pandoc"
+      "workingDir": "C:\\path\\to\\project"
     }
   }
 }

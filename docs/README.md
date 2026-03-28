@@ -2,152 +2,64 @@
 
 ## 工具概述
 
-本工具提供将 Markdown 文档转换为符合国家标准公文格式的 Word 文档功能。支持从 Obsidian、Typora 等编辑器直接导出。
+本工具旨在将 Markdown 文档快速转换为符合《党政机关公文格式》(GB/T 9704-2012) 国家标准的 Word 文档。它通过 Pandoc 引擎，结合预设的公文模板，实现了格式的精确映射。
 
 ## 标题级别映射
 
-| Markdown 语法 | Word样式 | 字体 | 字号 | 样式 | 对齐方式 | 说明 |
-|---------------|----------|------|------|------|----------|------|
-| `# 标题`      | 文档标题 | 方正小标宋简体 | 二号(22pt) | 加粗 | 居中 | 公文正式标题 |
-| `## 标题`     | 一级标题 | 黑体 | 三号(16pt) | 加粗 | 左对齐 | 主要章节标题 |
-| `### 标题`    | 二级标题 | 楷体_GB2312 | 三号(16pt) | 加粗 | 左对齐 | 次级章节标题 |
-| `#### 标题`   | 三级标题 | 仿宋_GB2312 | 三号(16pt) | 加粗 | 左对齐 | 三级章节标题 |
-| 普通文本      | 正文     | 仿宋_GB2312 | 三号(16pt) | 常规 | 首行缩进2字符 | 正文内容 |
+| Markdown 语法 | Word 样式 | 字体 | 字号 | 属性 | 说明 |
+|---------------|----------|------|------|------|------|
+| `# 标题`      | 文档标题 | 方正小标宋简体 | 二号(22pt) | 居中 | 公文正式标题 |
+| `## 标题`     | 一级标题 | 黑体 | 三号(16pt) | 左对齐 | 主要章节标题 |
+| `### 标题`    | 二级标题 | 楷体_GB2312 | 三号(16pt) | 左对齐 | 次级章节标题 |
+| `#### 标题`   | 三级标题 | 仿宋_GB2312 | 三号(16pt) | 左对齐 | 三级章节标题 |
+| 普通文本      | 正文     | 仿宋_GB2312 | 三号(16pt) | 首行缩进 | 正文内容 |
 
-## 快速开始
+## 🚀 快速开始
 
-### 1. 环境准备
-```bash
-# 安装 pandoc (Windows)
-choco install pandoc
-
-# 或从官网下载安装
-# https://pandoc.org/installing.html
-```
-
-### 2. 转换命令
-```bash
+### 1. 转换文档
+在项目根目录下运行：
+```batch
 # Windows
-convert_doc.bat input.md output.docx
+scripts\convert_doc.bat input.md [output.docx]
 
 # Linux/Mac
-./convert_doc.sh input.md output.docx
-
-# 直接使用 pandoc
-pandoc input.md --reference-doc=公文模板.docx -o output.docx
+./scripts/convert_doc.sh input.md [output.docx]
 ```
 
-### 3. 测试转换
-```bash
-# 使用提供的示例
-convert_doc.bat 示例文档.md 测试输出.docx
-```
-
-## 编辑器集成
-
-### Obsidian 用户
-参考：[Obsidian导出配置.md](Obsidian导出配置.md)
-
-- 支持自定义命令导出
-- 支持快捷键操作
-- 支持批量处理
-
-### Typora 用户
-参考：[Typora导出配置.md](Typora导出配置.md)
-
-- 内置导出菜单
-- 支持自定义模板
-- 支持实时预览
-
-## 文件说明
-
-```
-pandoc/
-├── 公文模板.docx          # 基础模板文件
-├── reference.docx         # pandoc 参考文档
-├── convert_doc.bat        # Windows 转换脚本（已更新）
-├── convert_doc.sh         # Linux/Mac 转换脚本（已更新）
-├── convert_doc_updated.bat # 更新版转换脚本
-├── convert_doc_with_font.bat # 带字体规范脚本
-├── 示例文档.md            # 测试用例（已更新）
-├── Obsidian导出配置.md     # Obsidian 配置说明
-├── Typora导出配置.md       # Typora 配置说明
-├── 公文字体规范.md         # 详细的字体配置指南
-├── 更新标题映射.md         # 标题映射更新说明
-└── README.md              # 本说明文档
-```
-
-## 高级功能
-
-### 1. 批量转换
+### 2. Typora 一键集成
+如果您使用 Typora，直接运行配置脚本：
 ```batch
-# Windows 批量转换脚本
-for %%f in (*.md) do (
-    convert_doc.bat "%%f" "%%~nf_正式.docx"
-)
+scripts\install_typora_config.bat
+```
+之后在 Typora 中按 `Ctrl+Shift+D` 即可完成导出。
+
+## 📁 核心文件说明
+
+- `scripts/convert_doc.bat`: Windows 主转换程序。
+- `scripts/convert_doc.sh`: Linux/Mac 主转换程序。
+- `templates/公文模板.docx`: 包含所有样式的 Word 模板。
+- `templates/pandoc-defaults.yaml`: Pandoc 统一配置参数。
+- `docs/Typora详细配置教程.md`: 针对 Typora 用户的深度指南。
+- `examples/示例文档.md`: 标注了正确格式的 MD 示例文件。
+
+## 🛠️ 高级技巧
+
+### 1. 批量处理 (Windows)
+```batch
+for %f in (*.md) do scripts\convert_doc.bat "%f"
 ```
 
 ### 2. 自定义样式
-可以通过修改 `公文模板.docx` 中的样式来自定义：
-- 字体设置
-- 段落间距
-- 页面布局
-- 页眉页脚
+如需调整行间距或页边距，请直接编辑 `templates/公文模板.docx`：
+1. 打开文件。
+2. 在“样式”面板中找到并修改对应样式（如“正文”）。
+3. 保存文件后再次运行转换脚本即可生效。
 
-### 3. 元数据支持
-在 Markdown 文件开头添加 YAML front matter：
+## 🚨 常见问题
 
-```markdown
+- **转换出来的字体不对?** 请确保系统中已安装“方正小标宋简体”、“楷体_GB2312”等字体。
+- **命令报错 "pandoc not found"?** 请安装 [Pandoc](https://pandoc.org) 并配置 PATH 环境变量。
+- **想要修改默认标题字体?** 修改 `templates/pandoc-defaults.yaml` 中的 `variables` 部分。
+
 ---
-title: 文档标题
-author: 作者姓名
-date: 2024-01-15
----
-
-# 正文内容
-```
-
-## 故障排除
-
-### 常见问题
-
-**Q: 转换后格式不正确？**
-A: 检查 `公文模板.docx` 中的样式设置，确保标题样式已正确定义。
-
-**Q: 中文显示乱码？**
-A: 确保 Markdown 文件使用 UTF-8 编码保存。
-
-**Q: 找不到 pandoc 命令？**
-A: 重新安装 pandoc 并确保已添加到系统 PATH。
-
-**Q: 模板文件损坏？**
-A: 使用原始模板文件重新创建 `reference.docx`。
-
-### 日志查看
-转换过程中的详细信息可以通过以下方式查看：
-
-```bash
-# 详细输出
-pandoc input.md --reference-doc=公文模板.docx -o output.docx --verbose
-
-# 调试模式
-pandoc input.md --reference-doc=公文模板.docx -o output.docx --debug
-```
-
-## 技术支持
-
-如遇到问题，请提供：
-1. 错误信息截图
-2. 输入的 Markdown 文件
-3. 使用的命令和参数
-4. 操作系统版本
-
-## 更新日志
-
-- v1.0.0: 初始版本，支持基本转换功能
-- 支持标题级别映射
-- 支持主要编辑器集成
-
-## 许可证
-
-本工具遵循 MIT 许可证，可自由使用和修改。
+📖 更多详细信息请参考 [项目首页 README](../README.md)。

@@ -1,0 +1,20 @@
+[package]
+name = "pandoc-flow"
+version = "2.0.0"
+description = "Markdown to GB/T 9704-2012 Official Word Document"
+authors = ["Pandoc Flow Team"]
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "1", features = [] }
+
+[dependencies]
+tauri = { version = "1", features = ["shell-open", "system-tray", "window-start-dragging"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+anyhow = "1"
+
+[features]
+# default = [ "custom-protocol" ]
+custom-protocol = [ "tauri/custom-protocol" ]

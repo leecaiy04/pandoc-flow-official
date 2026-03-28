@@ -1,4 +1,5 @@
 @echo off
+setlocal enabledelayedexpansion
 chcp 65001 >nul
 
 REM Typora 公文格式快速配置脚本
@@ -8,6 +9,13 @@ echo =====================================
 echo Typora 公文格式配置工具
 echo =====================================
 echo.
+
+REM 获取项目根目录 (绝对路径)
+set "SCRIPT_DIR=%~dp0"
+cd /d "%SCRIPT_DIR%.."
+set "PROJECT_ROOT=%cd%"
+set "CONVERT_SCRIPT=%PROJECT_ROOT%\scripts\convert_doc.bat"
+set "THEME_SRC=%PROJECT_ROOT%\typora-config\typora-theme\official-document"
 
 REM 检查Typora是否安装
 echo [1/5] 检查Typora安装状态...
@@ -22,60 +30,79 @@ echo ✅ Typora已安装
 
 REM 创建主题目录
 echo [2/5] 安装公文主题...
-set "theme_dir=%APPDATA%\Typora\themes\official-document"
-if not exist "%theme_dir%" (
-    mkdir "%theme_dir%"
+set "theme_dest=%APPDATA%\Typora\themes\official-document"
+if not exist "%theme_dest%" (
+    mkdir "%theme_dest%"
 )
 
 REM 复制主题文件
-copy /Y "..\typora-config\typora-theme\official-document\*.css" "%theme_dir%\" >nul 2>&1
-copy /Y "..\typora-config\typora-theme\official-document\README.md" "%theme_dir%\" >nul 2>&1
-if exist "%theme_dir%\official.css" (
-    echo ✅ 主题文件已安装到: %theme_dir%
+if exist "%THEME_SRC%" (
+    copy /Y "%THEME_SRC%\*.css" "%theme_dest%\" >nul 2>&1
+    copy /Y "%THEME_SRC%\README.md" "%theme_dest%\" >nul 2>&1
+    echo ✅ 主题文件已安装到: %theme_dest%
 ) else (
-    echo ❌ 主题文件安装失败
+    echo ❌ 找不到主题源文件: %THEME_SRC%
     pause
     exit /b 1
 )
 
 REM 配置导出设置
 echo [3/5] 配置导出功能...
-set "config_dir=%APPDATA%\Typora"
-set "config_file=%config_dir%\conf.user.json"
+set "config_file=%typora_path%\conf.user.json"
 
 REM 备份现有配置
 if exist "%config_file%" (
     copy "%config_file%" "%config_file%.backup" >nul 2>&1
-    echo ✅ 已备份现有配置
+    echo ✅ 已备份现有配置 (conf.user.json.backup)
 )
 
-REM 创建或更新配置
-echo { > "%config_file%"
-echo   "defaultFontFamily": "仿宋_GB2312", >> "%config_file%"
-echo   "defaultFontSize": 16, >> "%config_file%"
-echo   "lineHeight": 1.5, >> "%config_file%"
-echo   "theme": "official-document", >> "%config_file%"
-echo   "customExport": { >> "%config_file%"
-echo     "official-doc": { >> "%config_file%"
-echo       "name": "公文格式Word", >> "%config_file%"
-echo       "description": "导出为符合国家标准的公文格式Word文档", >> "%config_file%"
-echo       "command": "convert_doc.bat", >> "%config_file%"
-echo       "args": ["${currentFilePath}", "${currentFilePath}.docx"], >> "%config_file%"
-echo       "workingDir": "D:\\Code\\Template\\pandoc", >> "%config_file%"
-echo       "shortcut": "ctrl+shift+d", >> "%config_file%"
-echo       "icon": "file-word" >> "%config_file%"
-echo     } >> "%config_file%"
-echo   }, >> "%config_file%"
-echo   "editor": { >> "%config_file%"
-echo     "fontSize": 16, >> "%config_file%"
-echo     "fontFamily": "仿宋_GB2312", >> "%config_file%"
-echo     "lineHeight": 1.5, >> "%config_file%"
-echo     "paragraphSpacing": 8 >> "%config_file%"
-echo   } >> "%config_file%"
-echo } >> "%config_file%"
+REM 转义路径中的反斜杠用于 JSON
+set "ESC_PROJECT_ROOT=%PROJECT_ROOT:\=\\%"
+set "ESC_CONVERT_SCRIPT=%CONVERT_SCRIPT:\=\\%"
 
-if exist "%config_file%" (
-    echo ✅ 导出配置已完成
+echo 正在更新 Typora 配置文件...
+
+REM 使用 PowerShell 安全地合并 JSON 配置
+powershell -Command ^
+    "$path = '%config_file%';" ^
+    "$newConfig = @{" ^
+    "  'defaultFontFamily' = '仿宋_GB2312';" ^
+    "  'defaultFontSize' = 16;" ^
+    "  'lineHeight' = 1.5;" ^
+    "  'theme' = 'official-document';" ^
+    "  'customExport' = @{" ^
+    "    'official-doc' = @{" ^
+    "      'name' = '公文格式Word';" ^
+    "      'description' = '导出为符合国家标准的公文格式Word文档';" ^
+    "      'command' = '!ESC_CONVERT_SCRIPT!';" ^
+    "      'args' = @('${currentFilePath}', '${currentFilePath}.docx');" ^
+    "      'workingDir' = '!ESC_PROJECT_ROOT!';" ^
+    "      'shortcut' = 'ctrl+shift+d';" ^
+    "      'icon' = 'file-word'" ^
+    "    }" ^
+    "  };" ^
+    "  'editor' = @{" ^
+    "    'fontSize' = 16;" ^
+    "    'fontFamily' = '仿宋_GB2312';" ^
+    "    'lineHeight' = 1.5;" ^
+    "    'paragraphSpacing' = 8" ^
+    "  }" ^
+    "};" ^
+    "if (Test-Path $path) {" ^
+    "  $existing = Get-Content $path | ConvertFrom-Json;" ^
+    "  if ($existing.customExport) {" ^
+    "    $existing.customExport | Add-Member -NotePropertyName 'official-doc' -NotePropertyValue $newConfig.customExport.'official-doc' -Force;" ^
+    "  } else {" ^
+    "    $existing | Add-Member -NotePropertyName 'customExport' -NotePropertyValue $newConfig.customExport -Force;" ^
+    "  }" ^
+    "  $existing.theme = $newConfig.theme;" ^
+    "  $existing | ConvertTo-Json -Depth 10 | Set-Content $path -Encoding UTF8;" ^
+    "} else {" ^
+    "  $newConfig | ConvertTo-Json -Depth 10 | Set-Content $path -Encoding UTF8;" ^
+    "}"
+
+if !errorlevel! equ 0 (
+    echo ✅ 导出配置已完成 (动态路径: %PROJECT_ROOT%)
 ) else (
     echo ❌ 导出配置失败
     pause
@@ -85,7 +112,7 @@ if exist "%config_file%" (
 REM 检查pandoc安装
 echo [4/5] 检查Pandoc安装状态...
 where pandoc >nul 2>&1
-if %errorlevel% equ 0 (
+if !errorlevel! equ 0 (
     echo ✅ Pandoc已安装
 ) else (
     echo ⚠️  Pandoc未安装，请手动安装: https://pandoc.org/installing.html
@@ -96,34 +123,42 @@ REM 检查字体
 echo [5/5] 检查必需字体...
 echo 正在检查字体安装状态...
 
-REM 检查方正小标宋简体
+set "font_missing=0"
 reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts" /f "方正小标宋" >nul 2>&1
-if %errorlevel% equ 0 (
+if !errorlevel! equ 0 (
     echo ✅ 方正小标宋简体已安装
 ) else (
-    echo ⚠️  方正小标宋简体未安装，标题可能显示为默认字体
+    echo ⚠️  方正小标宋简体未安装
+    set "font_missing=1"
 )
 
-REM 检查其他字体
 reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts" /f "黑体" >nul 2>&1
-if %errorlevel% equ 0 (
+if !errorlevel! equ 0 (
     echo ✅ 黑体已安装
 ) else (
     echo ⚠️  黑体未安装
+    set "font_missing=1"
 )
 
 reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts" /f "楷体" >nul 2>&1
-if %errorlevel% equ 0 (
+if !errorlevel! equ 0 (
     echo ✅ 楷体已安装
 ) else (
     echo ⚠️  楷体未安装
+    set "font_missing=1"
 )
 
 reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts" /f "仿宋" >nul 2>&1
-if %errorlevel% equ 0 (
+if !errorlevel! equ 0 (
     echo ✅ 仿宋已安装
 ) else (
     echo ⚠️  仿宋未安装
+    set "font_missing=1"
+)
+
+if !font_missing! equ 1 (
+    echo.
+    echo 💡 提示: 部分公文字体缺失，请参考 fonts\README.md 安装。
 )
 
 echo.
@@ -138,7 +173,7 @@ echo 3. 创建或打开Markdown文档
 echo 4. 使用快捷键 Ctrl+Shift+D 导出公文格式Word
 echo.
 echo 📁 配置文件位置:
-echo 主题目录: %theme_dir%
+echo 主题目录: %theme_dest%
 echo 配置文件: %config_file%
 echo.
 echo 💡 使用说明:

@@ -1,11 +1,16 @@
 #!/bin/bash
 
-# 公文格式转换脚本
-# 标题映射：#→文档标题，##→一级标题，###→二级标题，####→三级标题
-# 使用方法: ./convert_doc.sh input.md output.docx
+# 公文格式转换脚本 (Linux/Mac)
+# 使用方法: ./scripts/convert_doc.sh <输入文件.md> [输出文件.docx]
 
-if [ $# -ne 2 ]; then
-    echo "使用方法: $0 <输入文件.md> <输出文件.docx>"
+# 获取脚本所在目录
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PROJECT_ROOT="$( dirname "$SCRIPT_DIR" )"
+DEFAULTS_FILE="$PROJECT_ROOT/templates/pandoc-defaults.yaml"
+TEMPLATE="$PROJECT_ROOT/templates/公文模板.docx"
+
+if [ $# -lt 1 ]; then
+    echo "使用方法: $0 <输入文件.md> [输出文件.docx]"
     echo "示例: $0 document.md document.docx"
     echo ""
     echo "标题映射："
@@ -17,8 +22,11 @@ if [ $# -ne 2 ]; then
 fi
 
 input_file="$1"
-output_file="$2"
-template="公文模板.docx"
+if [ -z "$2" ]; then
+    output_file="${input_file%.*}.docx"
+else
+    output_file="$2"
+fi
 
 # 检查文件是否存在
 if [ ! -f "$input_file" ]; then
@@ -26,30 +34,53 @@ if [ ! -f "$input_file" ]; then
     exit 1
 fi
 
-if [ ! -f "$template" ]; then
-    echo "错误: 模板文件 '$template' 不存在"
+if [ ! -f "$DEFAULTS_FILE" ]; then
+    echo "警告: 默认配置文件 '$DEFAULTS_FILE' 不存在"
+    echo "将尝试使用命令行参数进行转换..."
+fi
+
+if [ ! -f "$TEMPLATE" ]; then
+    echo "错误: 模板文件 '$TEMPLATE' 不存在"
     exit 1
 fi
 
-# 使用pandoc转换
-pandoc "$input_file" \
-    --reference-doc="$template" \
-    --from=markdown \
-    --to=docx \
-    --output="$output_file" \
-    --highlight-style=pygments \
-    --metadata title="公文文档" \
-    --variable CJKmainfont="方正小标宋简体"
+# 检查Pandoc是否安装
+if ! command -v pandoc &> /dev/null; then
+    echo "错误: 未找到 pandoc 命令，请确保已安装 Pandoc。"
+    exit 1
+fi
+
+echo "正在转换: '$input_file' -> '$output_file'..."
+
+if [ -f "$DEFAULTS_FILE" ]; then
+    pandoc "$input_file" \
+        -d "$DEFAULTS_FILE" \
+        --output="$output_file"
+else
+    pandoc "$input_file" \
+        --reference-doc="$TEMPLATE" \
+        --from=markdown \
+        --to=docx \
+        --output="$output_file" \
+        --highlight-style=pygments \
+        --metadata title="公文文档" \
+        --variable mainfont="仿宋_GB2312" \
+        --variable CJKmainfont="方正小标宋简体"
+fi
 
 if [ $? -eq 0 ]; then
-    echo "转换成功: $output_file"
     echo ""
-    echo "标题映射已应用："
-    echo "# → 文档标题（请在Word中确认标题1样式：方正小标宋简体二号居中）"
-    echo "## → 一级标题（请在Word中确认标题2样式：黑体三号左对齐）"
-    echo "### → 二级标题（请在Word中确认标题3样式：楷体三号左对齐）"
-    echo "#### → 三级标题（请在Word中确认标题4样式：仿宋三号左对齐）"
+    echo "转换成功: $output_file"
+    echo "------------------------------------------"
+    echo "提示: 请在Word中确认以下样式是否正确应用："
+    echo "1. 文档标题 (#) -> 方正小标宋简体二号居中"
+    echo "2. 一级标题 (##) -> 黑体三号"
+    echo "3. 二级标题 (###) -> 楷体三号"
+    echo "4. 三级标题 (####) -> 仿宋三号"
+    echo "5. 正文 -> 仿宋三号 (首行缩进2字符)"
+    echo "------------------------------------------"
 else
-    echo "转换失败"
+    echo ""
+    echo "错误: 转换失败"
     exit 1
-fi
+fi
