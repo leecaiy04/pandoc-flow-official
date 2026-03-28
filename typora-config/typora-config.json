@@ -1,0 +1,49 @@
+{
+  "defaultFontFamily": "仿宋_GB2312",
+  "defaultFontSize": 16,
+  "lineHeight": 1.5,
+  "theme": "official-document",
+  "customExport": {
+    "official-doc": {
+      "name": "公文格式Word",
+      "description": "导出为符合国家标准的公文格式Word文档",
+      "command": "convert_doc.bat",
+      "args": ["${currentFilePath}", "${currentFilePath}.docx"],
+      "workingDir": "D:\\Code\\Template\\pandoc",
+      "shortcut": "ctrl+shift+d",
+      "icon": "file-word"
+    },
+    "official-doc-pandoc": {
+      "name": "公文格式Word(Pandoc)",
+      "description": "使用直接pandoc命令导出公文格式",
+      "command": "pandoc",
+      "args": [
+        "${currentFilePath}",
+        "--reference-doc=D:\\Code\\Template\\pandoc\\公文模板.docx",
+        "--variable=CJKmainfont=方正小标宋简体",
+        "--variable=mainfont=方正小标宋简体",
+        "--metadata=title=公文文档",
+        "-o",
+        "${currentFilePath}.docx"
+      ],
+      "workingDir": "D:\\Code\\Template\\pandoc",
+      "shortcut": "ctrl+shift+e",
+      "icon": "file-word"
+    }
+  },
+  "editor": {
+    "fontSize": 16,
+    "fontFamily": "仿宋_GB2312",
+    "lineHeight": 1.5,
+    "paragraphSpacing": 8
+  },
+  "preview": {
+    "fontSize": 16,
+    "fontFamily": "仿宋_GB2312",
+    "lineHeight": 1.5
+  },
+  "export": {
+    "preserveNewLines": true,
+    "encoding": "utf8"
+  }
+}
