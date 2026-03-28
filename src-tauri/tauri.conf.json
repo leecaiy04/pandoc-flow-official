@@ -38,7 +38,7 @@
       "../scripts/*",
       "../fonts/*"
     ],
-    "category": "Office",
+    "category": "Productivity",
     "longDescription": "Markdown ➝ 公文 Word 一键转换器",
     "shortDescription": "一键转换公文格式"
   }
