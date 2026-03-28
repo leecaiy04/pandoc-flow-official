@@ -9,6 +9,9 @@ on:
       - "v*" # 触发版本发布逻辑
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   publish:
     strategy:

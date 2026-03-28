@@ -39,7 +39,7 @@
       "../fonts/*"
     ],
     "category": "Productivity",
-    "longDescription": "Markdown ➝ 公文 Word 一键转换器",
-    "shortDescription": "一键转换公文格式"
+    "longDescription": "Converts Markdown to GB/T 9704-2012 Official Word Documents.",
+    "shortDescription": "One-click Pandoc Document Converter"
   }
 }
