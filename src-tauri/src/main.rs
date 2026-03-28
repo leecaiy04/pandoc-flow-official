@@ -4,8 +4,8 @@
 )]
 
 use std::process::Command;
-use std::path::{Path, PathBuf};
-use tauri::{Manager, AppHandle, Runtime};
+use std::path::{Path};
+use tauri::{Manager, AppHandle, Runtime, Emitter};
 
 #[tauri::command]
 async fn convert_markdown<R: Runtime>(
@@ -20,8 +20,8 @@ async fn convert_markdown<R: Runtime>(
     // 默认输出为同目录下 .docx
     let output_path = input_path.with_extension("docx");
     
-    // 获取资源目录中的模版和 defaults 文件
-    let resource_dir = app.path_resolver().resource_dir().ok_or("找不到资源目录")?;
+    // 获取资源目录中的模版和 defaults 文件 (Tauri v2 API)
+    let resource_dir = app.path().resource_dir().map_err(|e| format!("找不到资源目录: {}", e))?;
     
     // 我们将 templates 文件夹放在资源目录下
     let defaults_file = resource_dir.join("templates/pandoc-defaults.yaml");
@@ -30,8 +30,6 @@ async fn convert_markdown<R: Runtime>(
     if !defaults_file.exists() && !template_file.exists() {
          return Err("找不到模板文件".into());
     }
-
-    println!("正在转换: {} -> {}", input_path.display(), output_path.display());
 
     // 构建 Pandoc 命令
     let mut cmd = Command::new("pandoc");
@@ -64,11 +62,12 @@ fn main() {
             if args.len() > 1 {
                 let paths: Vec<String> = args[1..].iter().cloned().collect();
                 // 将初始拖入的文件列表发送给前端
-                let app_handle = app.handle();
+                let app_handle = app.handle().clone();
                 tauri::async_runtime::spawn(async move {
                     // 等待前端加载完成
                     tokio::time::sleep(tokio::time::Duration::from_millis(1500)).await;
-                    app_handle.emit_all("initial-files", paths).unwrap();
+                    // Tauri v2 emit TO ALL windows
+                    app_handle.emit("initial-files", paths).unwrap();
                 });
             }
             Ok(())

@@ -1,80 +1,45 @@
 {
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "PandocFlow",
+  "version": "2.0.0",
+  "identifier": "com.leecaiy04.pandoc-flow",
   "build": {
     "beforeBuildCommand": "",
     "beforeDevCommand": "",
-    "devPath": "../src",
-    "distDir": "../src",
-    "withGlobalTauri": true
+    "frontendDist": "../src"
   },
-  "package": {
-    "productName": "PandocFlow",
-    "version": "2.0.0"
-  },
-  "tauri": {
-    "allowlist": {
-      "all": false,
-      "shell": {
-        "all": false,
-        "open": true,
-        "execute": true,
-        "sidecar": false
-      },
-      "dialog": {
-        "all": true
-      },
-      "fs": {
-        "all": true,
-        "scope": ["$RESOURCE/*", "$APP/*", "$HOME/*"]
-      }
-    },
-    "bundle": {
-      "active": true,
-      "category": "Office",
-      "copyright": "",
-      "deb": {
-        "depends": []
-      },
-      "externalBin": [],
-      "icon": [
-        "icons/32x32.png",
-        "icons/128x128.png",
-        "icons/128x128@2x.png",
-        "icons/icon.icns",
-        "icons/icon.ico"
-      ],
-      "identifier": "com.leecaiy04.pandoc-flow",
-      "longDescription": "Markdown ➝ 公文 Word 一键转换器",
-      "macOS": {
-        "entitlements": null,
-        "exceptionDomain": "",
-        "frameworks": [],
-        "providerBundleIdentifier": null,
-        "signingIdentity": null
-      },
-      "resources": [
-        "../templates/*",
-        "../scripts/*",
-        "../fonts/*"
-      ],
-      "shortDescription": "一键转换公文格式",
-      "targets": "all",
-      "windows": {
-        "certificateThumbprint": null,
-        "digestAlgorithm": "sha256",
-        "timestampServer": ""
-      }
-    },
-    "security": {
-      "csp": null
-    },
-    "window": [
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
       {
-        "fullscreen": false,
+        "title": "Pandoc Flow",
+        "width": 450,
         "height": 450,
         "resizable": false,
-        "title": "Pandoc Flow",
-        "width": 450
+        "fullscreen": false
       }
-    ]
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "resources": [
+      "../templates/*",
+      "../scripts/*",
+      "../fonts/*"
+    ],
+    "category": "Office",
+    "longDescription": "Markdown ➝ 公文 Word 一键转换器",
+    "shortDescription": "一键转换公文格式"
   }
 }

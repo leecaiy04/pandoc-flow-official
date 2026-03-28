@@ -35,18 +35,12 @@
       border-radius: 24px;
       box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
       text-align: center;
-      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .container:hover {
-      transform: scale(1.02);
     }
 
     .header h1 {
       font-size: 24px;
       margin-bottom: 8px;
       color: var(--primary);
-      font-weight: 600;
     }
 
     .header p {
@@ -62,7 +56,6 @@
       background-color: #fafafa;
       transition: all 0.2s ease;
       cursor: pointer;
-      position: relative;
     }
 
     .drop-zone.hover {
@@ -70,45 +63,16 @@
       background-color: #f0f7ff;
     }
 
-    .drop-zone .icon {
-      font-size: 48px;
-      margin-bottom: 16px;
-      display: block;
-    }
-
-    .drop-zone .label {
-      font-weight: 500;
-      color: var(--text);
-    }
-
     .status-area {
       margin-top: 24px;
-      min-height: 24px;
       font-size: 14px;
     }
 
-    .status-success {
-      color: #34c759;
-    }
+    .status-success { color: #34c759; }
+    .status-error { color: #ff3b30; }
+    .status-processing { color: var(--accent); }
 
-    .status-error {
-      color: #ff3b30;
-    }
-
-    .status-processing {
-      color: var(--accent);
-    }
-
-    .footer {
-      margin-top: 24px;
-      font-size: 12px;
-      color: #c7c7cc;
-    }
-
-    /* 简单的加载动画 */
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
+    @keyframes spin { to { transform: rotate(360deg); } }
     .spinner {
       display: inline-block;
       width: 14px;
@@ -123,95 +87,60 @@
   </style>
 </head>
 <body>
-  <div class="container" id="app">
+  <div class="container">
     <div class="header">
       <h1>Pandoc Flow</h1>
-      <p> Markdown ➝ 公文 Word 一键转换</p>
+      <p>Markdown ➝ 公文 Word 一键转换</p>
     </div>
     
     <div class="drop-zone" id="drop-zone">
-      <span class="icon">📄</span>
-      <span class="label">拖入文件，即刻转换</span>
+      <span style="font-size: 48px; display: block; margin-bottom: 16px;">📄</span>
+      <span style="font-weight: 500;">拖入文件，即刻转换</span>
     </div>
 
     <div class="status-area" id="status">
-      <!-- 动态显示状态 -->
-      转换后的 Word 文档将生成在源文件同目录下
-    </div>
-
-    <div class="footer">
-      符合 GB/T 9704-2012 国家标准
+      生成的 Word 将保存在源文件同目录下
     </div>
   </div>
 
   <script>
     const dropZone = document.getElementById('drop-zone');
     const statusMsg = document.getElementById('status');
-    const { invoke } = window.__TAURI__.tauri;
-    const { listen } = window.__TAURI__.event;
+    
+    // Tauri v2 Global APIs
+    const invoke = window.__TAURI__.core.invoke;
+    const listen = window.__TAURI__.event.listen;
 
-    // 处理拖拽文件
-    dropZone.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      dropZone.classList.add('hover');
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('hover'); });
+    dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('hover'); });
+    dropZone.addEventListener('drop', (e) => { e.preventDefault(); dropZone.classList.remove('hover'); });
+
+    // Tauri v2 Drag & Drop
+    listen('tauri://drag-drop', (event) => {
+      const paths = event.payload.paths;
+      if (paths && paths.length > 0) processFiles(paths);
     });
 
-    dropZone.addEventListener('dragleave', () => {
-      dropZone.classList.remove('hover');
-    });
-
-    dropZone.addEventListener('drop', async (e) => {
-      e.preventDefault();
-      dropZone.classList.remove('hover');
-      
-      // 注意：Tauri 有专用的拖拽监听事件，但普通 HTML 拖拽也可获取路径 (如果是配置了权限)
-      // 在 Tauri App 中，我们更倾向于监听其提供的 file-drop 事件
-    });
-
-    // 捕获 Tauri 的拖放事件
-    listen('tauri://file-drop', async (event) => {
-      const paths = event.payload;
-      if (paths && paths.length > 0) {
-        processFiles(paths);
-      }
+    // Startup files
+    listen('initial-files', (event) => {
+      processFiles(event.payload);
     });
 
     async function processFiles(paths) {
       for (const path of paths) {
-        if (path.endsWith('.md')) {
-          showProcessing(`正在转换: ${path.split(/[\\/]/).pop()}`);
+        if (path.toLowerCase().endsWith('.md')) {
+          statusMsg.innerHTML = `<span class="spinner"></span><span class="status-processing">正在转换...</span>`;
           try {
             const result = await invoke('convert_markdown', { path });
-            showSuccess(`转换成功：${result}`);
+            statusMsg.innerHTML = `<span class="status-success">✅ 成功：${result}</span>`;
           } catch (err) {
-            showError(`失败：${err}`);
+            statusMsg.innerHTML = `<span class="status-error">❌ 错误：${err}</span>`;
           }
         } else {
-          showError('⚠️ 请拖入 Markdown (.md) 文件');
+          statusMsg.innerHTML = `<span class="status-error">⚠️ 请拖入 Markdown 文件</span>`;
         }
       }
     }
-
-    function showProcessing(msg) {
-      statusMsg.innerHTML = `<span class="spinner"></span><span class="status-processing">${msg}</span>`;
-    }
-
-    function showSuccess(msg) {
-      statusMsg.innerHTML = `<span class="status-success">✅ ${msg}</span>`;
-    }
-
-    function showError(msg) {
-      statusMsg.innerHTML = `<span class="status-error">${msg}</span>`;
-    }
-
-    // 处理来自主进程的拖入文件 (支持拖入图标运行模式)
-    listen('initial-files', (event) => {
-      const paths = event.payload;
-      if (paths && paths.length > 0) {
-        processFiles(paths);
-      }
-    });
-
   </script>
 </body>
 </html>
