@@ -1,0 +1,7 @@
+{
+  "identifier": "allow-convert-markdown",
+  "description": "Allows the convert_markdown command",
+  "allow": [
+    "convert_markdown"
+  ]
+}
