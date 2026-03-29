@@ -55,6 +55,7 @@ async fn convert_markdown<R: Runtime>(
 
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             // 获取拖拽到图标打开的文件
             let args: Vec<String> = std::env::args().collect();
