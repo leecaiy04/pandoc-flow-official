@@ -108,17 +108,45 @@
     const statusMsg = document.getElementById('status');
     
     // Tauri v2 Global APIs
-    const invoke = window.__TAURI__.core.invoke;
-    const listen = window.__TAURI__.event.listen;
+    const { invoke } = window.__TAURI__.core;
+    const { listen } = window.__TAURI__.event;
+    const { open } = window.__TAURI__.dialog;
 
-    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('hover'); });
-    dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('hover'); });
-    dropZone.addEventListener('drop', (e) => { e.preventDefault(); dropZone.classList.remove('hover'); });
+    // Handle Drag Over
+    window.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('hover');
+    });
 
-    // Tauri v2 Drag & Drop
+    window.addEventListener('dragleave', (e) => {
+      if (e.relatedTarget === null) {
+        dropZone.classList.remove('hover');
+      }
+    });
+
+    // Fallback: Click to select file
+    dropZone.addEventListener('click', async () => {
+      try {
+        const selected = await open({
+          multiple: true,
+          filters: [{ name: 'Markdown', extensions: ['md'] }]
+        });
+        if (selected && selected.length > 0) {
+          processFiles(selected);
+        }
+      } catch (err) {
+        console.error('File dialog failed:', err);
+      }
+    });
+
+    // Handle Native File Drop
     listen('tauri://drag-drop', (event) => {
+      console.log('Drop event:', event);
+      dropZone.classList.remove('hover');
       const paths = event.payload.paths;
-      if (paths && paths.length > 0) processFiles(paths);
+      if (paths && paths.length > 0) {
+        processFiles(paths);
+      }
     });
 
     // Startup files
@@ -127,11 +155,16 @@
     });
 
     async function processFiles(paths) {
+      if (!paths || paths.length === 0) return;
+      
       for (const path of paths) {
-        if (path.toLowerCase().endsWith('.md')) {
-          statusMsg.innerHTML = `<span class="spinner"></span><span class="status-processing">正在转换...</span>`;
+        const fileName = typeof path === 'string' ? path : path.path;
+        const normalizedPath = typeof path === 'string' ? path : path.path;
+
+        if (normalizedPath.toLowerCase().endsWith('.md')) {
+          statusMsg.innerHTML = `<span class="spinner"></span><span class="status-processing">正在转换... ${normalizedPath.split(/[\\/]/).pop()}</span>`;
           try {
-            const result = await invoke('convert_markdown', { path });
+            const result = await invoke('convert_markdown', { path: normalizedPath });
             statusMsg.innerHTML = `<span class="status-success">✅ 成功：${result}</span>`;
           } catch (err) {
             statusMsg.innerHTML = `<span class="status-error">❌ 错误：${err}</span>`;

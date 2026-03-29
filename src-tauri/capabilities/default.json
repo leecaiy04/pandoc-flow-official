@@ -1,0 +1,16 @@
+{
+  "$schema": "../gen/schemas/capability.json",
+  "identifier": "main-capability",
+  "description": "Capability for the main window",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "event:default",
+    "window:default",
+    "path:default",
+    "shell:default",
+    "process:default",
+    "dialog:default",
+    "allow-convert-markdown"
+  ]
+}
