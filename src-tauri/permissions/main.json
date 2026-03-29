@@ -1,7 +1,7 @@
 {
   "identifier": "allow-convert-markdown",
   "description": "Allows the convert_markdown command",
-  "commands": [
+  "allow": [
     "convert_markdown"
   ]
 }
