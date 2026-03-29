@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Clone)]
 struct ConvertRequest {
     path: String,
+    custom_template: Option<String>, // 用户选取的自定义模板路径
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -20,34 +21,55 @@ struct ConvertResponse {
     error: Option<String>,
 }
 
-fn do_convert(app: &AppHandle, path: String) -> Result<String, String> {
+fn do_convert(app: &AppHandle, path: String, custom_template: Option<String>) -> Result<String, String> {
     let input_path = Path::new(&path);
     if !input_path.exists() {
-        return Err("输入文件不存在".into());
+        return Err(format!("输入文件不存在: {}", path));
     }
 
     let output_path = input_path.with_extension("docx");
-    let resource_dir = app.path().resource_dir().map_err(|e| format!("找不到资源目录: {}", e))?;
     
-    let defaults_file = resource_dir.join("templates/pandoc-defaults.yaml");
-    let template_file = resource_dir.join("templates/official-template.docx");
+    // 确定资源目录
+    let resource_dir = app.path().resource_dir().map_err(|e| format!("无法定位资源目录: {}", e))?;
+    
+    // 默认内置路径 (Tauri v2 资源打包后通常在资源根目录的相应文件夹下)
+    let default_defaults = resource_dir.join("templates/pandoc-defaults.yaml");
+    let default_template = resource_dir.join("templates/official-template.docx");
 
-    if !defaults_file.exists() && !template_file.exists() {
-         return Err("找不到模板文件".into());
+    // 确定使用的模板/配置
+    let (use_defaults, use_template) = if let Some(custom) = custom_template {
+        // 如果是自定义模板，优先尝试作为 defaults yaml，否则作为 reference-doc
+        let p = PathBuf::from(custom);
+        if p.extension().map_or(false, |ext| ext == "yaml" || ext == "yml") {
+            (Some(p), None)
+        } else {
+            (None, Some(p))
+        }
+    } else {
+        // 使用内置默认值
+        (
+            if default_defaults.exists() { Some(default_defaults) } else { None },
+            if default_template.exists() { Some(default_template) } else { None }
+        )
+    };
+
+    // 检查是否至少有一个模板可用
+    if use_defaults.is_none() && use_template.is_none() {
+        return Err(format!("找不到任何可用的模板文件。资源目录：{:?}", resource_dir));
     }
 
     let mut cmd = Command::new("pandoc");
     cmd.arg(input_path);
     
-    if defaults_file.exists() {
-        cmd.arg("-d").arg(defaults_file);
-    } else {
-        cmd.arg("--reference-doc").arg(template_file);
+    if let Some(d) = use_defaults {
+        cmd.arg("-d").arg(d);
+    } else if let Some(t) = use_template {
+        cmd.arg("--reference-doc").arg(t);
     }
 
     cmd.arg("-o").arg(&output_path);
 
-    let output = cmd.output().map_err(|e| format!("执行 Pandoc 失败: {}", e))?;
+    let output = cmd.output().map_err(|e| format!("系统未安装 Pandoc 或执行失败: {}", e))?;
 
     if output.status.success() {
         Ok(output_path.file_name().unwrap_or_default().to_string_lossy().to_string())
@@ -63,15 +85,15 @@ fn main() {
         .setup(|app| {
             let handle = app.handle().clone();
             
-            // 监听前端发来的转换请求 (绕过 Command ACL)
+            // 监听转换请求
             app.listen("markdown-conversion-request", move |event| {
                 if let Ok(req) = serde_json::from_str::<ConvertRequest>(event.payload()) {
                     let app_handle = handle.clone();
                     let path = req.path;
+                    let custom_template = req.custom_template;
                     
-                    // 在异步线程中执行，避免阻塞主线程
                     tauri::async_runtime::spawn(async move {
-                        match do_convert(&app_handle, path) {
+                        match do_convert(&app_handle, path, custom_template) {
                             Ok(res) => {
                                 app_handle.emit("markdown-conversion-response", ConvertResponse {
                                     success: true,
@@ -91,7 +113,7 @@ fn main() {
                 }
             });
 
-            // 处理启动参数（拖入图标的文件）
+            // 处理启动参数
             let args: Vec<String> = std::env::args().collect();
             if args.len() > 1 {
                 let paths: Vec<String> = args[1..].iter().cloned().collect();

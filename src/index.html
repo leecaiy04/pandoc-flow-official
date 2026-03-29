@@ -12,10 +12,12 @@
       --card-bg: #ffffff;
       --text: #1d1d1f;
       --text-soft: #86868b;
+      --danger: #ff3b30;
+      --success: #34c759;
     }
     
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Myriad Set Pro", "SF Pro Icons", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
       margin: 0;
       padding: 0;
       background-color: var(--bg);
@@ -29,60 +31,99 @@
     }
 
     .container {
-      width: 400px;
+      width: 420px;
       padding: 40px;
       background-color: var(--card-bg);
-      border-radius: 24px;
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+      border-radius: 30px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
       text-align: center;
+      position: relative;
     }
 
     .header h1 {
-      font-size: 24px;
+      font-size: 26px;
       margin-bottom: 8px;
-      color: var(--primary);
+      letter-spacing: -0.5px;
     }
 
     .header p {
       font-size: 14px;
       color: var(--text-soft);
-      margin-bottom: 32px;
+      margin-bottom: 30px;
     }
 
     .drop-zone {
       border: 2px dashed #d2d2d7;
-      border-radius: 16px;
-      padding: 60px 20px;
+      border-radius: 20px;
+      padding: 50px 20px;
       background-color: #fafafa;
-      transition: all 0.2s ease;
+      transition: all 0.3s ease;
       cursor: pointer;
+      position: relative;
     }
 
     .drop-zone.hover {
       border-color: var(--accent);
       background-color: #f0f7ff;
+      transform: scale(1.02);
+    }
+
+    .template-box {
+      margin-top: 20px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      font-size: 12px;
+      color: var(--text-soft);
+      justify-content: center;
+    }
+
+    .btn-small {
+      padding: 6px 12px;
+      border-radius: 12px;
+      border: none;
+      background-color: #e8e8ed;
+      color: var(--primary);
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+
+    .btn-small:hover {
+      background-color: #d2d2d7;
     }
 
     .status-area {
       margin-top: 24px;
-      font-size: 14px;
+      font-size: 13px;
+      min-height: 20px;
     }
 
-    .status-success { color: #34c759; }
-    .status-error { color: #ff3b30; }
+    .status-success { color: var(--success); font-weight: 500; }
+    .status-error { color: var(--danger); }
     .status-processing { color: var(--accent); }
 
-    @keyframes spin { to { transform: rotate(360deg); } }
     .spinner {
       display: inline-block;
-      width: 14px;
-      height: 14px;
-      border: 2px solid rgba(0, 113, 227, 0.2);
+      width: 12px;
+      height: 12px;
+      border: 2px solid rgba(0, 113, 227, 0.1);
       border-top-color: var(--accent);
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
-      margin-right: 8px;
+      margin-right: 6px;
       vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .file-tag {
+      display: inline-block;
+      max-width: 150px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      vertical-align: bottom;
     }
   </style>
 </head>
@@ -90,26 +131,73 @@
   <div class="container">
     <div class="header">
       <h1>Pandoc Flow</h1>
-      <p>Markdown ➝ 公文 Word 一键转换</p>
+      <p> Markdown ➝ 国标公文 Word 转换</p>
     </div>
     
     <div class="drop-zone" id="drop-zone">
-      <span style="font-size: 48px; display: block; margin-bottom: 16px;">📄</span>
-      <span style="font-weight: 500;">点击或拖入文件转换</span>
+      <div style="font-size: 50px; margin-bottom: 12px;">📄</div>
+      <div style="font-weight: 600; font-size: 16px;">将 .md 文件拖入此处</div>
+      <div style="font-size: 12px; color: var(--text-soft); margin-top: 8px;">或点击选择文件</div>
+    </div>
+
+    <div class="template-box">
+      <span>当前模板：</span>
+      <span id="template-name" class="file-tag">内置默认模板</span>
+      <button class="btn-small" id="select-template">更换</button>
+      <button class="btn-small" id="reset-template" style="display: none;">重置</button>
     </div>
 
     <div class="status-area" id="status">
-      生成的 Word 将保存在源文件同目录下
+      输出文件将保存在源文件同级目录
     </div>
   </div>
 
   <script>
     const dropZone = document.getElementById('drop-zone');
     const statusMsg = document.getElementById('status');
+    const tplNameDisp = document.getElementById('template-name');
+    const btnSelectTpl = document.getElementById('select-template');
+    const btnResetTpl = document.getElementById('reset-template');
     
     // Tauri v2 Global APIs
     const { emit, listen } = window.__TAURI__.event;
     const { open } = window.__TAURI__.dialog;
+
+    let selectedTemplate = localStorage.getItem('custom_template_path') || null;
+    updateTemplateUI();
+
+    function updateTemplateUI() {
+      if (selectedTemplate) {
+        tplNameDisp.innerText = selectedTemplate.split(/[\\/]/).pop();
+        tplNameDisp.title = selectedTemplate;
+        btnResetTpl.style.display = 'inline-block';
+      } else {
+        tplNameDisp.innerText = '内置默认模板';
+        btnResetTpl.style.display = 'none';
+      }
+    }
+
+    // 更换模板
+    btnSelectTpl.addEventListener('click', async () => {
+      const selected = await open({
+        multiple: false,
+        filters: [
+          { name: 'Word/Config', extensions: ['docx', 'yaml', 'yml'] }
+        ]
+      });
+      if (selected) {
+        selectedTemplate = typeof selected === 'string' ? selected : selected.path;
+        localStorage.setItem('custom_template_path', selectedTemplate);
+        updateTemplateUI();
+      }
+    });
+
+    // 重置模板
+    btnResetTpl.addEventListener('click', () => {
+      selectedTemplate = null;
+      localStorage.removeItem('custom_template_path');
+      updateTemplateUI();
+    });
 
     // Handle Drag Over
     window.addEventListener('dragover', (e) => {
@@ -123,19 +211,15 @@
       }
     });
 
-    // Fallback: Click to select file
+    // Click to select files
     dropZone.addEventListener('click', async () => {
-      try {
-        const selected = await open({
-          multiple: true,
-          filters: [{ name: 'Markdown', extensions: ['md'] }]
-        });
-        if (selected) {
-           const paths = Array.isArray(selected) ? selected : [selected];
-           processFiles(paths);
-        }
-      } catch (err) {
-        console.error('File dialog failed:', err);
+      const selected = await open({
+        multiple: true,
+        filters: [{ name: 'Markdown', extensions: ['md'] }]
+      });
+      if (selected) {
+        const paths = Array.isArray(selected) ? selected : [selected];
+        processFiles(paths);
       }
     });
 
@@ -153,11 +237,11 @@
       processFiles(event.payload);
     });
 
-    // 监听转换结果
+    // 监听后端回复
     listen('markdown-conversion-response', (event) => {
       const { success, result, error } = event.payload;
       if (success) {
-        statusMsg.innerHTML = `<span class="status-success">✅ 成功：${result}</span>`;
+        statusMsg.innerHTML = `<span class="status-success">✅ 完成：${result}</span>`;
       } else {
         statusMsg.innerHTML = `<span class="status-error">❌ 错误：${error}</span>`;
       }
@@ -168,13 +252,13 @@
       
       for (const path of paths) {
         const normalizedPath = typeof path === 'string' ? path : path.path;
-
         if (normalizedPath.toLowerCase().endsWith('.md')) {
-          statusMsg.innerHTML = `<span class="spinner"></span><span class="status-processing">正在转换... ${normalizedPath.split(/[\\/]/).pop()}</span>`;
-          // 发送转换请求事件
-          emit('markdown-conversion-request', { path: normalizedPath });
-        } else {
-          statusMsg.innerHTML = `<span class="status-error">⚠️ 请提供 Markdown 文件</span>`;
+          statusMsg.innerHTML = `<span class="spinner"></span><span class="status-processing">转换中...</span>`;
+          // 发送带有自定义模板路径的消息
+          emit('markdown-conversion-request', { 
+            path: normalizedPath,
+            custom_template: selectedTemplate 
+          });
         }
       }
     }
