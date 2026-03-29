@@ -95,7 +95,7 @@
     
     <div class="drop-zone" id="drop-zone">
       <span style="font-size: 48px; display: block; margin-bottom: 16px;">📄</span>
-      <span style="font-weight: 500;">拖入文件，即刻转换</span>
+      <span style="font-weight: 500;">点击或拖入文件转换</span>
     </div>
 
     <div class="status-area" id="status">
@@ -108,8 +108,7 @@
     const statusMsg = document.getElementById('status');
     
     // Tauri v2 Global APIs
-    const { invoke } = window.__TAURI__.core;
-    const { listen } = window.__TAURI__.event;
+    const { emit, listen } = window.__TAURI__.event;
     const { open } = window.__TAURI__.dialog;
 
     // Handle Drag Over
@@ -131,8 +130,9 @@
           multiple: true,
           filters: [{ name: 'Markdown', extensions: ['md'] }]
         });
-        if (selected && selected.length > 0) {
-          processFiles(selected);
+        if (selected) {
+           const paths = Array.isArray(selected) ? selected : [selected];
+           processFiles(paths);
         }
       } catch (err) {
         console.error('File dialog failed:', err);
@@ -141,7 +141,6 @@
 
     // Handle Native File Drop
     listen('tauri://drag-drop', (event) => {
-      console.log('Drop event:', event);
       dropZone.classList.remove('hover');
       const paths = event.payload.paths;
       if (paths && paths.length > 0) {
@@ -154,23 +153,28 @@
       processFiles(event.payload);
     });
 
+    // 监听转换结果
+    listen('markdown-conversion-response', (event) => {
+      const { success, result, error } = event.payload;
+      if (success) {
+        statusMsg.innerHTML = `<span class="status-success">✅ 成功：${result}</span>`;
+      } else {
+        statusMsg.innerHTML = `<span class="status-error">❌ 错误：${error}</span>`;
+      }
+    });
+
     async function processFiles(paths) {
       if (!paths || paths.length === 0) return;
       
       for (const path of paths) {
-        const fileName = typeof path === 'string' ? path : path.path;
         const normalizedPath = typeof path === 'string' ? path : path.path;
 
         if (normalizedPath.toLowerCase().endsWith('.md')) {
           statusMsg.innerHTML = `<span class="spinner"></span><span class="status-processing">正在转换... ${normalizedPath.split(/[\\/]/).pop()}</span>`;
-          try {
-            const result = await invoke('convert_markdown', { path: normalizedPath });
-            statusMsg.innerHTML = `<span class="status-success">✅ 成功：${result}</span>`;
-          } catch (err) {
-            statusMsg.innerHTML = `<span class="status-error">❌ 错误：${err}</span>`;
-          }
+          // 发送转换请求事件
+          emit('markdown-conversion-request', { path: normalizedPath });
         } else {
-          statusMsg.innerHTML = `<span class="status-error">⚠️ 请拖入 Markdown 文件</span>`;
+          statusMsg.innerHTML = `<span class="status-error">⚠️ 请提供 Markdown 文件</span>`;
         }
       }
     }

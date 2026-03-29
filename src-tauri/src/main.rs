@@ -4,26 +4,31 @@
 )]
 
 use std::process::Command;
-use std::path::{Path};
-use tauri::{Manager, AppHandle, Runtime, Emitter};
+use std::path::{Path, PathBuf};
+use tauri::{Manager, AppHandle, Runtime, Emitter, Listener};
+use serde::{Deserialize, Serialize};
 
-#[tauri::command]
-async fn convert_markdown<R: Runtime>(
-    app: AppHandle<R>,
-    path: String
-) -> Result<String, String> {
+#[derive(Serialize, Deserialize, Clone)]
+struct ConvertRequest {
+    path: String,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+struct ConvertResponse {
+    success: bool,
+    result: String,
+    error: Option<String>,
+}
+
+fn do_convert(app: &AppHandle, path: String) -> Result<String, String> {
     let input_path = Path::new(&path);
     if !input_path.exists() {
         return Err("输入文件不存在".into());
     }
 
-    // 默认输出为同目录下 .docx
     let output_path = input_path.with_extension("docx");
-    
-    // 获取资源目录中的模版和 defaults 文件 (Tauri v2 API)
     let resource_dir = app.path().resource_dir().map_err(|e| format!("找不到资源目录: {}", e))?;
     
-    // 我们将 templates 文件夹放在资源目录下
     let defaults_file = resource_dir.join("templates/pandoc-defaults.yaml");
     let template_file = resource_dir.join("templates/official-template.docx");
 
@@ -31,7 +36,6 @@ async fn convert_markdown<R: Runtime>(
          return Err("找不到模板文件".into());
     }
 
-    // 构建 Pandoc 命令
     let mut cmd = Command::new("pandoc");
     cmd.arg(input_path);
     
@@ -57,23 +61,48 @@ fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
-            // 获取拖拽到图标打开的文件
+            let handle = app.handle().clone();
+            
+            // 监听前端发来的转换请求 (绕过 Command ACL)
+            app.listen("markdown-conversion-request", move |event| {
+                if let Ok(req) = serde_json::from_str::<ConvertRequest>(event.payload()) {
+                    let app_handle = handle.clone();
+                    let path = req.path;
+                    
+                    // 在异步线程中执行，避免阻塞主线程
+                    tauri::async_runtime::spawn(async move {
+                        match do_convert(&app_handle, path) {
+                            Ok(res) => {
+                                app_handle.emit("markdown-conversion-response", ConvertResponse {
+                                    success: true,
+                                    result: res,
+                                    error: None,
+                                }).unwrap();
+                            }
+                            Err(e) => {
+                                app_handle.emit("markdown-conversion-response", ConvertResponse {
+                                    success: false,
+                                    result: String::new(),
+                                    error: Some(e),
+                                }).unwrap();
+                            }
+                        }
+                    });
+                }
+            });
+
+            // 处理启动参数（拖入图标的文件）
             let args: Vec<String> = std::env::args().collect();
-            // 在 Windows 上，第一个参数是程序本身，后续是传入的文件路径
             if args.len() > 1 {
                 let paths: Vec<String> = args[1..].iter().cloned().collect();
-                // 将初始拖入的文件列表发送给前端
                 let app_handle = app.handle().clone();
                 tauri::async_runtime::spawn(async move {
-                    // 等待前端加载完成
                     tokio::time::sleep(tokio::time::Duration::from_millis(1500)).await;
-                    // Tauri v2 emit TO ALL windows
                     app_handle.emit("initial-files", paths).unwrap();
                 });
             }
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![convert_markdown])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
