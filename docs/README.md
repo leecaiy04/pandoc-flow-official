@@ -37,7 +37,7 @@ scripts\install_typora_config.bat
 
 - `scripts/convert_doc.bat`: Windows 主转换程序。
 - `scripts/convert_doc.sh`: Linux/Mac 主转换程序。
-- `templates/公文模板.docx`: 包含所有样式的 Word 模板。
+- `templates/official-template.docx`: 包含所有样式的 Word 模板。
 - `templates/pandoc-defaults.yaml`: Pandoc 统一配置参数。
 - `docs/Typora详细配置教程.md`: 针对 Typora 用户的深度指南。
 - `examples/示例文档.md`: 标注了正确格式的 MD 示例文件。
@@ -50,7 +50,7 @@ for %f in (*.md) do scripts\convert_doc.bat "%f"
 ```
 
 ### 2. 自定义样式
-如需调整行间距或页边距，请直接编辑 `templates/公文模板.docx`：
+如需调整行间距或页边距，请直接编辑 `templates/official-template.docx`：
 1. 打开文件。
 2. 在“样式”面板中找到并修改对应样式（如“正文”）。
 3. 保存文件后再次运行转换脚本即可生效。
@@ -58,6 +58,7 @@ for %f in (*.md) do scripts\convert_doc.bat "%f"
 ## 🚨 常见问题
 
 - **转换出来的字体不对?** 请确保系统中已安装“方正小标宋简体”、“楷体_GB2312”等字体。
+- **手动运行 pandoc 时样式偶尔失效?** 请同时传入 `-d templates/pandoc-defaults.yaml` 和 `--reference-doc templates/official-template.docx`。
 - **命令报错 "pandoc not found"?** 请安装 [Pandoc](https://pandoc.org) 并配置 PATH 环境变量。
 - **想要修改默认标题字体?** 修改 `templates/pandoc-defaults.yaml` 中的 `variables` 部分。
 

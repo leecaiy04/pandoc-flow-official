@@ -52,6 +52,7 @@ chmod +x scripts/*.sh
 这两个脚本现在更加智能化：
 - ✅ **自动路径识别**: 无论在项目根目录还是脚本目录运行，都能正确找到模板和配置文件。
 - ✅ **Pandoc Defaults 支持**: 使用 `templates/pandoc-defaults.yaml` 进行统一配置，便于维护。
+- ✅ **显式模板绑定**: 脚本会额外传入 `--reference-doc`，避免工作目录变化导致样式丢失。
 - ✅ **参数优化**: 输出文件名现在是可选的，如果不指定则自动生成。
 - ✅ **增强纠错**: 会检查 Pandoc 是否安装，以及模板文件是否存在。
 
@@ -80,7 +81,7 @@ chmod +x scripts/*.sh
 **解决：** 请安装 Pandoc (https://pandoc.org) 并将其路径添加到系统环境变量 PATH 中。
 
 **错误：** `模板文件不存在`
-**解决：** 请确保 `templates/公文模板.docx` 文件存在于项目中。
+**解决：** 请确保 `templates/official-template.docx` 文件存在于项目中。
 
 **错误：** 字体显示不正确
 **解决：** 

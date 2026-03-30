@@ -56,9 +56,11 @@ typora-config/
 - `preview`: 预览设置
 
 ### 自定义导出
-配置文件中定义了两个导出选项：
-1. **公文格式Word**: 使用convert_doc.bat脚本
-2. **公文格式Word(Pandoc)**: 直接使用pandoc命令
+配置文件中默认定义了一个导出选项：
+1. **公文格式Word**: 使用 `convert_doc.bat` 脚本
+
+如需手动改为直接调用 `pandoc`，请确保同时传入：
+`-d "{项目根目录}\templates\pandoc-defaults.yaml" --reference-doc "{项目根目录}\templates\official-template.docx"`
 
 ## 🎨 主题详情
 

@@ -6,12 +6,12 @@
 
 | 文件名 | 描述 | 用途 | 状态 |
 |--------|------|------|------|
-| `公文模板.docx` | **主要模板** | 公文格式转换的基础模板 | ✅ 正常 |
+| `official-template.docx` | **主要模板** | 公文格式转换的基础模板 | ✅ 正常 |
 | `reference.docx` | Pandoc参考文档 | Pandoc转换的参考文件 | ✅ 正常 |
 
 ## 🔧 模板使用说明
 
-### 公文模板.docx
+### official-template.docx
 **作用**: 
 - 提供公文格式的样式定义
 - 设置页面布局和边距
@@ -94,7 +94,7 @@
 ### 备份模板
 在修改前建议备份：
 ```bash
-copy 公文模板.docx 公文模板_backup_$(date +%Y%m%d).docx
+copy official-template.docx official-template_backup_$(date +%Y%m%d).docx
 ```
 
 ### 更新步骤
@@ -141,7 +141,7 @@ copy 公文模板.docx 公文模板_backup_$(date +%Y%m%d).docx
 ### 快速测试
 ```bash
 # 使用模板测试转换
-pandoc ../examples/test.md --reference-doc=公文模板.docx -o test_output.docx
+pandoc ../examples/test.md -d ../templates/pandoc-defaults.yaml --reference-doc=../templates/official-template.docx -o test_output.docx
 ```
 
 ### 模板验证

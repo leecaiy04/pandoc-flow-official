@@ -57,7 +57,7 @@ pandoc --version
 ```
 格式名称：公文格式 Word (Pandoc)
 命令：pandoc
-参数：-d "{项目根目录}\templates\pandoc-defaults.yaml" "${currentFilePath}" -o "${currentFilePath}.docx"
+参数：-d "{项目根目录}\templates\pandoc-defaults.yaml" --reference-doc "{项目根目录}\templates\official-template.docx" "${currentFilePath}" -o "${currentFilePath}.docx"
 工作目录：{项目根目录}
 ```
 

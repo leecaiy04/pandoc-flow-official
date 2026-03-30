@@ -5,16 +5,16 @@
 ### 基础命令（确保字体正确应用）
 ```bash
 # Windows
-pandoc "input.md" --reference-doc="公文模板.docx" --metadata title="公文文档" --variable CJKmainfont="方正小标宋简体" -o "output.docx"
+pandoc "input.md" --reference-doc="official-template.docx" --metadata title="公文文档" --variable CJKmainfont="方正小标宋简体" -o "output.docx"
 
 # Linux/Mac
-pandoc "input.md" --reference-doc="公文模板.docx" --metadata title="公文文档" --variable CJKmainfont="方正小标宋简体" -o "output.docx"
+pandoc "input.md" --reference-doc="official-template.docx" --metadata title="公文文档" --variable CJKmainfont="方正小标宋简体" -o "output.docx"
 ```
 
 ### 推荐使用的完整命令
 ```bash
 pandoc "input.md" \
-    --reference-doc="公文模板.docx" \
+    --reference-doc="official-template.docx" \
     --metadata title="公文文档" \
     --variable CJKmainfont="方正小标宋简体" \
     --variable mainfont="方正小标宋简体" \
@@ -25,10 +25,20 @@ pandoc "input.md" \
     --output="output.docx"
 ```
 
+### 推荐的稳定写法（适用于任意工作目录）
+```bash
+pandoc "input.md" \
+    -d "templates/pandoc-defaults.yaml" \
+    --reference-doc="templates/official-template.docx" \
+    -o "output.docx"
+```
+
+> `pandoc-defaults.yaml` 只负责通用参数；`reference-doc` 建议始终显式传入，避免当前工作目录变化时模板未应用。
+
 ## 关键参数说明
 
 ### 必要参数
-- `--reference-doc="公文模板.docx"` - 指定公文模板文件
+- `--reference-doc="official-template.docx"` - 指定公文模板文件
 - `--metadata title="公文文档"` - 设置文档标题元数据
 - `--variable CJKmainfont="方正小标宋简体"` - 设置中文字体
 
@@ -58,6 +68,10 @@ pandoc "input.md" \
 **原因：** 模板文件损坏或样式设置错误
 **解决：** 重新创建模板文件并正确设置样式
 
+### 问题4：本地命令正常，打包后字体格式不对
+**原因：** 仅使用 `-d pandoc-defaults.yaml`，但没有显式传入 `--reference-doc`；当工作目录变化时，相对模板路径可能失效。
+**解决：** 始终使用 `-d "templates/pandoc-defaults.yaml" --reference-doc="templates/official-template.docx"`。
+
 ## 转换脚本使用
 
 ### 使用批处理脚本（推荐）
@@ -72,11 +86,11 @@ convert_doc.bat input.md output.docx
 如果手动执行pandoc，请确保使用正确的参数格式：
 
 ```bash
-# ❌ 错误示例（字体不生效）
-pandoc input.md --reference-doc=公文模板.docx -o output.docx
+# ❌ 错误示例（模板可能未完整生效）
+pandoc input.md -d templates/pandoc-defaults.yaml -o output.docx
 
-# ✅ 正确示例（字体生效）
-pandoc input.md --reference-doc=公文模板.docx --variable CJKmainfont="方正小标宋简体" -o output.docx
+# ✅ 正确示例（模板和字体稳定生效）
+pandoc input.md -d templates/pandoc-defaults.yaml --reference-doc=templates/official-template.docx -o output.docx
 ```
 
 ## 测试验证

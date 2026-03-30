@@ -55,6 +55,7 @@ echo "正在转换: '$input_file' -> '$output_file'..."
 if [ -f "$DEFAULTS_FILE" ]; then
     pandoc "$input_file" \
         -d "$DEFAULTS_FILE" \
+        --reference-doc="$TEMPLATE" \
         --output="$output_file"
 else
     pandoc "$input_file" \
@@ -83,4 +84,4 @@ else
     echo ""
     echo "错误: 转换失败"
     exit 1
-fi
+fi

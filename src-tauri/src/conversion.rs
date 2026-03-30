@@ -91,24 +91,29 @@ fn resolve_templates<R: Runtime>(
     }
 
     let resolver = app.path();
+    let resource_dir = resolver.resource_dir().unwrap_or_default();
     let defaults = resolver
         .resolve("templates/pandoc-defaults.yaml", BaseDirectory::Resource)
-        .ok();
+        .map_err(|err| {
+            anyhow!(
+                "找不到内置 Pandoc 配置：templates/pandoc-defaults.yaml。资源目录：{}。错误：{}",
+                resource_dir.display(),
+                err
+            )
+        })?;
     let reference_doc = resolver
         .resolve("templates/official-template.docx", BaseDirectory::Resource)
-        .ok();
-
-    if defaults.is_none() && reference_doc.is_none() {
-        let resource_dir = resolver.resource_dir().unwrap_or_default();
-        bail!(
-            "找不到任何可用模板文件。资源目录：{}",
-            resource_dir.display()
-        );
-    }
+        .map_err(|err| {
+            anyhow!(
+                "找不到内置 Word 模板：templates/official-template.docx。资源目录：{}。错误：{}",
+                resource_dir.display(),
+                err
+            )
+        })?;
 
     Ok(TemplateSelection {
-        defaults,
-        reference_doc,
+        defaults: Some(defaults),
+        reference_doc: Some(reference_doc),
     })
 }
 

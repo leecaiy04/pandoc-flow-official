@@ -49,7 +49,7 @@ if %errorlevel% neq 0 (
 echo 正在转换: "%input_file%" 到 "%output_file%"...
 
 if exist "%DEFAULTS_FILE%" (
-    pandoc "%input_file%" -d "%DEFAULTS_FILE%" -o "%output_file%"
+    pandoc "%input_file%" -d "%DEFAULTS_FILE%" --reference-doc="%TEMPLATE%" -o "%output_file%"
 ) else (
     pandoc "%input_file%" --reference-doc="%TEMPLATE%" -o "%output_file%"
 )

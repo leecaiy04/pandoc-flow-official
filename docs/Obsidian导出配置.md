@@ -96,7 +96,7 @@ module.exports = async (params) => {
 ## 注意事项
 
 1. 确保脚本路径正确：`D:\Code\Template\pandoc\convert_doc.bat`
-2. 确保模板文件 `公文模板.docx` 存在
+2. 确保模板文件 `official-template.docx` 存在
 3. 生成的文件名会在原文件名后添加 `.docx` 扩展名
 4. 如果遇到中文编码问题，请确保使用 UTF-8 编码
 
@@ -104,7 +104,7 @@ module.exports = async (params) => {
 
 ### 常见错误
 1. **pandoc not found**: 需要安装 pandoc 并添加到 PATH
-2. **模板文件不存在**: 检查 `公文模板.docx` 是否在正确位置
+2. **模板文件不存在**: 检查 `official-template.docx` 是否在正确位置
 3. **权限错误**: 确保有写入目录的权限
 
 ### 验证安装
