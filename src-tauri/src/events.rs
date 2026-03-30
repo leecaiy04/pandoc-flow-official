@@ -16,4 +16,5 @@ pub struct ConvertResponse {
     pub result: String,
     pub full_path: Option<String>,
     pub error: Option<String>,
+    pub cli_command: Option<String>,
 }

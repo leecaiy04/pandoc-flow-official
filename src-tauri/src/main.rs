@@ -91,18 +91,19 @@ fn build_convert_response<R: Runtime>(
     } = request;
 
     match convert_markdown(app, &path, custom_template) {
-        Ok(output_path) => {
-            let file_name = output_path
+        Ok(result) => {
+            let file_name = result
+                .output_path
                 .file_name()
-                .and_then(|name| name.to_str())
-                .unwrap_or_default()
-                .to_string();
-
+                .map(|name| name.to_string_lossy().to_string())
+                .unwrap_or_default();
+            let full_path = result.output_path.to_string_lossy().to_string();
             ConvertResponse {
                 success: true,
                 result: file_name,
-                full_path: Some(output_path.to_string_lossy().to_string()),
+                full_path: Some(full_path),
                 error: None,
+                cli_command: Some(result.cli_command),
             }
         }
         Err(err) => ConvertResponse {
@@ -110,6 +111,7 @@ fn build_convert_response<R: Runtime>(
             result: String::new(),
             full_path: None,
             error: Some(err.to_string()),
+            cli_command: None,
         },
     }
 }

@@ -9,11 +9,17 @@ struct TemplateSelection {
     reference_doc: Option<PathBuf>,
 }
 
+#[derive(Debug)]
+pub struct ConversionResult {
+    pub output_path: PathBuf,
+    pub cli_command: String,
+}
+
 pub fn convert_markdown<R: Runtime>(
     app: &AppHandle<R>,
     input: impl AsRef<Path>,
     custom_template: Option<String>,
-) -> Result<PathBuf> {
+) -> Result<ConversionResult> {
     let input_path = input.as_ref();
     if !input_path.exists() {
         bail!("输入文件不存在：{}", input_path.display());
@@ -40,7 +46,11 @@ pub fn convert_markdown<R: Runtime>(
         .with_context(|| "系统未安装 Pandoc 或执行失败")?;
 
     if output.status.success() {
-        Ok(output_path)
+        let cli_command = build_cli_command(input_path, &templates, &output_path);
+        Ok(ConversionResult {
+            output_path,
+            cli_command,
+        })
     } else {
         let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
         if stderr.is_empty() {
@@ -100,4 +110,24 @@ fn resolve_templates<R: Runtime>(
         defaults,
         reference_doc,
     })
+}
+
+fn build_cli_command(input: &Path, selection: &TemplateSelection, output: &Path) -> String {
+    let mut parts = Vec::new();
+    parts.push(format!("pandoc \"{}\"", escape_path(input)));
+    if let Some(defaults) = selection.defaults.as_ref() {
+        parts.push(format!("-d \"{}\"", escape_path(defaults)));
+    }
+    if let Some(reference_doc) = selection.reference_doc.as_ref() {
+        parts.push(format!(
+            "--reference-doc \"{}\"",
+            escape_path(reference_doc)
+        ));
+    }
+    parts.push(format!("-o \"{}\"", escape_path(output)));
+    parts.join(" ")
+}
+
+fn escape_path(path: &Path) -> String {
+    path.to_string_lossy().replace('"', "\\\"")
 }

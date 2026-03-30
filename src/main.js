@@ -100,7 +100,7 @@ class StatusPanel {
     `;
   }
 
-  showSuccess(fileName, fullPath) {
+  showSuccess(fileName, fullPath, cliCommand) {
     if (!this.element) return;
     const safeName = escapeHTML(fileName || '文档');
     this.element.innerHTML = `
@@ -115,6 +115,16 @@ class StatusPanel {
         this.invoke('open_folder', { path: fullPath });
       });
       this.element.appendChild(button);
+    }
+
+    if (cliCommand) {
+      const helper = document.createElement('div');
+      helper.className = 'cli-helper';
+      helper.innerHTML = `
+        <div class="cli-helper__label">命令行复现</div>
+        <pre class="cli-helper__code">${escapeHTML(cliCommand)}</pre>
+      `;
+      this.element.appendChild(helper);
     }
   }
 
@@ -218,9 +228,9 @@ class PandocApp {
       });
 
       await this.api.listen('markdown-conversion-response', (event) => {
-        const { success, result, full_path, error } = event.payload;
+        const { success, result, full_path, cli_command, error } = event.payload;
         if (success) {
-          this.statusPanel.showSuccess(result, full_path);
+          this.statusPanel.showSuccess(result, full_path, cli_command);
         } else {
           this.statusPanel.showError(error || '转换失败，请检查 Pandoc 配置');
         }
