@@ -27,7 +27,9 @@ pub fn convert_markdown<R: Runtime>(
 
     if let Some(defaults) = templates.defaults.as_ref() {
         cmd.arg("-d").arg(defaults);
-    } else if let Some(reference_doc) = templates.reference_doc.as_ref() {
+    }
+
+    if let Some(reference_doc) = templates.reference_doc.as_ref() {
         cmd.arg("--reference-doc").arg(reference_doc);
     }
 
