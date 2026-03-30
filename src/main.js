@@ -1,14 +1,30 @@
-const { emit, listen } = window.__TAURI__.event;
-const { open } = window.__TAURI__.dialog;
-const { invoke } = window.__TAURI__.core;
-
 const STORAGE_KEY = 'custom_template_path';
 
+function waitForTauri(timeout = 7000) {
+  if (window.__TAURI__) {
+    return Promise.resolve(window.__TAURI__);
+  }
+
+  return new Promise((resolve, reject) => {
+    const start = Date.now();
+    const timer = setInterval(() => {
+      if (window.__TAURI__) {
+        clearInterval(timer);
+        resolve(window.__TAURI__);
+      } else if (Date.now() - start > timeout) {
+        clearInterval(timer);
+        reject(new Error('Tauri API 初始化超时'));
+      }
+    }, 50);
+  });
+}
+
 class TemplateManager {
-  constructor({ storageKey, displayEl, resetButton }) {
+  constructor({ storageKey, displayEl, resetButton, openDialog }) {
     this.storageKey = storageKey;
     this.displayEl = displayEl;
     this.resetButton = resetButton;
+    this.openDialog = openDialog;
     this.current = window.localStorage.getItem(storageKey);
     this.render();
   }
@@ -18,12 +34,13 @@ class TemplateManager {
   }
 
   async pickTemplate() {
-    const selection = await open({
+    if (!this.openDialog) return;
+    const selection = await this.openDialog({
       multiple: false,
       filters: [{ name: 'Word/Config', extensions: ['docx', 'yaml', 'yml'] }],
-    });
-    if (!selection) return;
+    }).catch(() => null);
 
+    if (!selection) return;
     const path = typeof selection === 'string' ? selection : selection?.path;
     if (!path) return;
 
@@ -60,6 +77,11 @@ class TemplateManager {
 class StatusPanel {
   constructor(element) {
     this.element = element;
+    this.invoke = null;
+  }
+
+  setInvoker(fn) {
+    this.invoke = fn;
   }
 
   showIdle() {
@@ -71,22 +93,26 @@ class StatusPanel {
   showProcessing(targetPath) {
     if (!this.element) return;
     const label = targetPath ? getFileName(targetPath) : '文档';
-    this.element.innerHTML = <span class="spinner"></span><span class="status-processing">转换中：</span>;
+    const safeLabel = escapeHTML(label);
+    this.element.innerHTML = `
+      <span class="spinner"></span>
+      <span class="status-processing">转换中：${safeLabel}</span>
+    `;
   }
 
   showSuccess(fileName, fullPath) {
     if (!this.element) return;
-    const safeName = fileName || '文档';
-    this.element.innerHTML = 
+    const safeName = escapeHTML(fileName || '文档');
+    this.element.innerHTML = `
       <div><span class="status-success">✓ 转换完成</span></div>
-      <div class="status-note"></div>
-    ;
-    if (fullPath) {
+      <div class="status-note">${safeName}</div>
+    `;
+    if (fullPath && this.invoke) {
       const button = document.createElement('button');
       button.className = 'btn btn-primary';
       button.textContent = '打开所在目录';
       button.addEventListener('click', () => {
-        invoke('open_folder', { path: fullPath });
+        this.invoke('open_folder', { path: fullPath });
       });
       this.element.appendChild(button);
     }
@@ -94,7 +120,8 @@ class StatusPanel {
 
   showError(message) {
     if (!this.element) return;
-    this.element.innerHTML = <span class="status-error">⚠ </span>;
+    const safeMessage = escapeHTML(message || '发生未知错误');
+    this.element.innerHTML = `<span class="status-error">⚠ ${safeMessage}</span>`;
   }
 }
 
@@ -153,77 +180,93 @@ class DropZone {
   }
 }
 
-const statusPanel = new StatusPanel(document.getElementById('status'));
-statusPanel.showIdle();
-
-const templateManager = new TemplateManager({
-  storageKey: STORAGE_KEY,
-  displayEl: document.getElementById('template-name'),
-  resetButton: document.getElementById('reset-template'),
-});
-
-document
-  .getElementById('select-template')
-  .addEventListener('click', () => templateManager.pickTemplate());
-
-document
-  .getElementById('reset-template')
-  .addEventListener('click', () => templateManager.clear());
-
-const dropZone = new DropZone(document.getElementById('drop-zone'), {
-  onRequestDialog: () => selectMarkdownFiles(),
-  onDrop: (paths) => handleFiles(paths),
-});
-
-listen('tauri://drag-drop', (event) => {
-  dropZone.setHover(false);
-  const paths = event.payload?.paths || [];
-  handleFiles(paths);
-});
-
-listen('initial-files', (event) => {
-  handleFiles(event.payload || []);
-});
-
-listen('markdown-conversion-response', (event) => {
-  const { success, result, full_path, error } = event.payload;
-  if (success) {
-    statusPanel.showSuccess(result, full_path);
-  } else {
-    statusPanel.showError(error || '转换失败，请检查 Pandoc 配置');
-  }
-});
-
-async function selectMarkdownFiles() {
-  const selection = await open({
-    multiple: true,
-    filters: [{ name: 'Markdown', extensions: ['md'] }],
-  });
-
-  if (!selection) return;
-  const entries = Array.isArray(selection) ? selection : [selection];
-  handleFiles(entries);
-}
-
-async function handleFiles(entries) {
-  const paths = extractMarkdownPaths(entries);
-  if (!paths.length) {
-    statusPanel.showError('请选择 Markdown (.md) 文件');
-    return;
+class PandocApp {
+  constructor(api, statusPanel) {
+    this.api = api;
+    this.statusPanel = statusPanel;
+    this.statusPanel.setInvoker(api.invoke);
+    this.templateManager = new TemplateManager({
+      storageKey: STORAGE_KEY,
+      displayEl: document.getElementById('template-name'),
+      resetButton: document.getElementById('reset-template'),
+      openDialog: api.openDialog,
+    });
+    this.dropZone = new DropZone(document.getElementById('drop-zone'), {
+      onRequestDialog: () => this.selectMarkdownFiles(),
+      onDrop: (paths) => this.handleFiles(paths),
+    });
   }
 
-  for (const path of paths) {
-    statusPanel.showProcessing(path);
+  async init() {
+    document
+      .getElementById('select-template')
+      ?.addEventListener('click', () => this.templateManager.pickTemplate());
+
+    document
+      .getElementById('reset-template')
+      ?.addEventListener('click', () => this.templateManager.clear());
+
     try {
-      await emit('markdown-conversion-request', {
-        path,
-        custom_template: templateManager.value,
+      await this.api.listen('tauri://drag-drop', (event) => {
+        this.dropZone.setHover(false);
+        const paths = event.payload?.paths || [];
+        this.handleFiles(paths);
+      });
+
+      await this.api.listen('initial-files', (event) => {
+        this.handleFiles(event.payload || []);
+      });
+
+      await this.api.listen('markdown-conversion-response', (event) => {
+        const { success, result, full_path, error } = event.payload;
+        if (success) {
+          this.statusPanel.showSuccess(result, full_path);
+        } else {
+          this.statusPanel.showError(error || '转换失败，请检查 Pandoc 配置');
+        }
       });
     } catch (error) {
-      statusPanel.showError(
-        `无法发送转换请求：${error?.message || String(error)}`
-      );
-      break;
+      console.error('Event registration failed:', error);
+      this.statusPanel.showError('监听系统事件失败，请重启应用');
+    }
+  }
+
+  async selectMarkdownFiles() {
+    if (!this.api.openDialog) return;
+    const selection = await this.api.openDialog({
+      multiple: true,
+      filters: [{ name: 'Markdown', extensions: ['md'] }],
+    }).catch((error) => {
+      this.statusPanel.showError(error?.message || '无法打开文件选择器');
+      return null;
+    });
+
+    if (!selection) return;
+    const entries = Array.isArray(selection) ? selection : [selection];
+    this.handleFiles(entries);
+  }
+
+  async handleFiles(entries) {
+    const paths = extractMarkdownPaths(entries);
+    if (!paths.length) {
+      this.statusPanel.showError('请选择 Markdown (.md) 文件');
+      return;
+    }
+
+    for (const path of paths) {
+      this.statusPanel.showProcessing(path);
+      try {
+        await this.api.emit('markdown-conversion-request', {
+          path,
+          custom_template: this.templateManager.value,
+        });
+      } catch (error) {
+        console.error('emit failed', error);
+        this.statusPanel.showError(
+          `无法发送转换请求：${error?.message || String(error)}`
+        );
+        break;
+      }
     }
   }
 }
@@ -250,3 +293,33 @@ function getFileName(path) {
   const segments = path.split(/[\\/]/);
   return segments[segments.length - 1] || path;
 }
+
+function escapeHTML(value) {
+  return (value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+const statusPanel = new StatusPanel(document.getElementById('status'));
+statusPanel.showIdle();
+
+(async () => {
+  try {
+    const tauri = await waitForTauri();
+    const api = {
+      emit: (...args) => tauri.event.emit(...args),
+      listen: (...args) => tauri.event.listen(...args),
+      openDialog: (...args) => tauri.dialog.open(...args),
+      invoke: (...args) => tauri.core.invoke(...args),
+    };
+
+    const app = new PandocApp(api, statusPanel);
+    await app.init();
+  } catch (error) {
+    console.error('Failed to bootstrap app:', error);
+    statusPanel.showError('Tauri 接口初始化失败，请重启应用');
+  }
+})();
