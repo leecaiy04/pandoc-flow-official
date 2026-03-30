@@ -3,79 +3,45 @@
     windows_subsystem = "windows"
 )]
 
+mod conversion;
+mod events;
+
+use conversion::convert_markdown;
+use events::{
+    ConvertRequest, ConvertResponse, EVENT_CONVERT_REQUEST, EVENT_CONVERT_RESPONSE,
+    EVENT_INITIAL_FILES,
+};
+use std::path::PathBuf;
 use std::process::Command;
-use std::path::{Path, PathBuf};
-use tauri::{Manager, AppHandle, Runtime, Emitter, Listener};
-use serde::{Deserialize, Serialize};
+use tauri::{AppHandle, Emitter, Event, Listener, Runtime};
+use tokio::time::{sleep, Duration};
 
-#[derive(Serialize, Deserialize, Clone)]
-struct ConvertRequest {
-    path: String,
-    custom_template: Option<String>, // 用户选取的自定义模板路径
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-struct ConvertResponse {
-    success: bool,
-    result: String,
-    error: Option<String>,
-}
-
-fn do_convert(app: &AppHandle, path: String, custom_template: Option<String>) -> Result<String, String> {
-    let input_path = Path::new(&path);
-    if !input_path.exists() {
-        return Err(format!("输入文件不存在: {}", path));
+#[tauri::command]
+fn open_folder(path: String) {
+    let path = PathBuf::from(path);
+    if !path.exists() {
+        return;
     }
 
-    let output_path = input_path.with_extension("docx");
-    
-    // 确定资源目录
-    let resource_dir = app.path().resource_dir().map_err(|e| format!("无法定位资源目录: {}", e))?;
-    
-    // 默认内置路径 (Tauri v2 资源打包后通常在资源根目录的相应文件夹下)
-    let default_defaults = resource_dir.join("templates/pandoc-defaults.yaml");
-    let default_template = resource_dir.join("templates/official-template.docx");
+    #[cfg(target_os = "windows")]
+    {
+        Command::new("explorer")
+            .arg("/select,")
+            .arg(&path)
+            .spawn()
+            .ok();
+    }
 
-    // 确定使用的模板/配置
-    let (use_defaults, use_template) = if let Some(custom) = custom_template {
-        // 如果是自定义模板，优先尝试作为 defaults yaml，否则作为 reference-doc
-        let p = PathBuf::from(custom);
-        if p.extension().map_or(false, |ext| ext == "yaml" || ext == "yml") {
-            (Some(p), None)
-        } else {
-            (None, Some(p))
+    #[cfg(target_os = "macos")]
+    {
+        Command::new("open").arg("-R").arg(&path).spawn().ok();
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        if let Some(parent) = path.parent() {
+            Command::new("xdg-open").arg(parent).spawn().ok();
         }
-    } else {
-        // 使用内置默认值
-        (
-            if default_defaults.exists() { Some(default_defaults) } else { None },
-            if default_template.exists() { Some(default_template) } else { None }
-        )
-    };
-
-    // 检查是否至少有一个模板可用
-    if use_defaults.is_none() && use_template.is_none() {
-        return Err(format!("找不到任何可用的模板文件。资源目录：{:?}", resource_dir));
-    }
-
-    let mut cmd = Command::new("pandoc");
-    cmd.arg(input_path);
-    
-    if let Some(d) = use_defaults {
-        cmd.arg("-d").arg(d);
-    } else if let Some(t) = use_template {
-        cmd.arg("--reference-doc").arg(t);
-    }
-
-    cmd.arg("-o").arg(&output_path);
-
-    let output = cmd.output().map_err(|e| format!("系统未安装 Pandoc 或执行失败: {}", e))?;
-
-    if output.status.success() {
-        Ok(output_path.file_name().unwrap_or_default().to_string_lossy().to_string())
-    } else {
-        let err_msg = String::from_utf8_lossy(&output.stderr);
-        Err(format!("Pandoc 转换失败: {}", err_msg))
     }
 }
 
@@ -84,47 +50,81 @@ fn main() {
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             let handle = app.handle().clone();
-            
-            // 监听转换请求
-            app.listen("markdown-conversion-request", move |event| {
-                if let Ok(req) = serde_json::from_str::<ConvertRequest>(event.payload()) {
-                    let app_handle = handle.clone();
-                    let path = req.path;
-                    let custom_template = req.custom_template;
-                    
-                    tauri::async_runtime::spawn(async move {
-                        match do_convert(&app_handle, path, custom_template) {
-                            Ok(res) => {
-                                app_handle.emit("markdown-conversion-response", ConvertResponse {
-                                    success: true,
-                                    result: res,
-                                    error: None,
-                                }).unwrap();
-                            }
-                            Err(e) => {
-                                app_handle.emit("markdown-conversion-response", ConvertResponse {
-                                    success: false,
-                                    result: String::new(),
-                                    error: Some(e),
-                                }).unwrap();
-                            }
-                        }
-                    });
-                }
-            });
-
-            // 处理启动参数
-            let args: Vec<String> = std::env::args().collect();
-            if args.len() > 1 {
-                let paths: Vec<String> = args[1..].iter().cloned().collect();
-                let app_handle = app.handle().clone();
-                tauri::async_runtime::spawn(async move {
-                    tokio::time::sleep(tokio::time::Duration::from_millis(1500)).await;
-                    app_handle.emit("initial-files", paths).unwrap();
-                });
-            }
+            register_conversion_listener(handle.clone());
+            bootstrap_initial_files(handle);
             Ok(())
         })
+        .invoke_handler(tauri::generate_handler![open_folder])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+fn register_conversion_listener<R: Runtime>(handle: AppHandle<R>) {
+    let conversion_handle = handle.clone();
+    handle.listen(EVENT_CONVERT_REQUEST, move |event: Event| {
+        let payload = event.payload().to_string();
+        let request: ConvertRequest = match serde_json::from_str(&payload) {
+            Ok(req) => req,
+            Err(err) => {
+                eprintln!("无法解析转换请求: {}", err);
+                return;
+            }
+        };
+
+        let app_handle = conversion_handle.clone();
+        tauri::async_runtime::spawn(async move {
+            let response = build_convert_response(&app_handle, request);
+            if let Err(err) = app_handle.emit(EVENT_CONVERT_RESPONSE, response) {
+                eprintln!("发送转换结果失败: {}", err);
+            }
+        });
+    });
+}
+
+fn build_convert_response<R: Runtime>(
+    app: &AppHandle<R>,
+    request: ConvertRequest,
+) -> ConvertResponse {
+    let ConvertRequest {
+        path,
+        custom_template,
+    } = request;
+
+    match convert_markdown(app, &path, custom_template) {
+        Ok(output_path) => {
+            let file_name = output_path
+                .file_name()
+                .and_then(|name| name.to_str())
+                .unwrap_or_default()
+                .to_string();
+
+            ConvertResponse {
+                success: true,
+                result: file_name,
+                full_path: Some(output_path.to_string_lossy().to_string()),
+                error: None,
+            }
+        }
+        Err(err) => ConvertResponse {
+            success: false,
+            result: String::new(),
+            full_path: None,
+            error: Some(err.to_string()),
+        },
+    }
+}
+
+fn bootstrap_initial_files<R: Runtime>(handle: AppHandle<R>) {
+    let args: Vec<String> = std::env::args().collect();
+    if args.len() <= 1 {
+        return;
+    }
+
+    let payload = args[1..].to_vec();
+    tauri::async_runtime::spawn(async move {
+        sleep(Duration::from_millis(1500)).await;
+        if let Err(err) = handle.emit(EVENT_INITIAL_FILES, payload) {
+            eprintln!("发送启动文件事件失败: {}", err);
+        }
+    });
 }

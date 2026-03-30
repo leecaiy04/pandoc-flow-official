@@ -25,33 +25,60 @@
 
 ```
 pandoc-flow/
-├── 🏠 README.md                    # 项目入口说明 (本文件)
-├── 📂 scripts/                     # 自动化工具脚本
+├── 📘 README.md                    # 项目入口说明 (本文件)
+├── 🌐 src/                         # 桌面端前端 (Tauri)
+│   ├── index.html                  # 语义化界面外壳
+│   ├── main.js                     # 拖拽 & 模板管理逻辑
+│   └── styles.css                  # 独立主题样式
+├── 🦀 src-tauri/                   # Rust 后端
+│   ├── src/conversion.rs           # Pandoc 调用与模板解析
+│   ├── src/events.rs               # 事件与消息模型
+│   └── src/main.rs                 # 应用入口
+├── ⚙️ scripts/                     # 自动化工具脚本
 │   ├── convert_doc.bat            # Windows 智能转换脚本 ⭐
 │   ├── convert_doc.sh             # Linux/Mac 智能转换脚本 ⭐
 │   └── install_typora_config.bat # Typora 一键部署工具 ⭐
-├── 📂 templates/                   # 核心格式模板
+├── 🗂️ templates/                   # 核心格式模板
 │   ├── official-template.docx      # Word 核心样式母版 ⭐
-│   ├── pandoc-defaults.yaml       # Pandoc 统一配置参数 ⭐
+│   ├── pandoc-defaults.yaml       # Pandoc 统一配置参数 ⚙️
 │   └── reference.docx              # 备用参考文档
-├── 📂 docs/                        # 深度文档库
+├── 📚 docs/                        # 深度文档库
 │   ├── Typora详细配置教程.md       # Typora 完备集成指南
 │   ├── Obsidian导出配置.md         # Obsidian 插件集成方案
 │   └── ☆公文格式GB_T 9704—2012.pdf # 国家标准原件
-├── 📂 examples/                    # 标准用例
+├── 🧪 examples/                    # 标准用例
 │   └── 示例文档.md                # 格式演示 MD 文件
-└── 📂 output/                      # 默认转换输出目录
-```
+└── 📦 output/                      # 默认转换输出目录
+`
+
 
 ---
 
 ## 📋 功能特性
 
 - ✅ **标准合规**: 严格遵循 GB/T 9704-2012 公文格式要求。
-- ✅ **智能映射**: 自动处理 `#` 标题到“方正小标宋简体二号”等映射关系。
-- ✅ **一键集成**: 提供 Windows 一键配置脚本，自动处理路径与字体检查。
-- ✅ **跨平台**: 完美支持 Windows、Linux 及 macOS 系统。
-- ✅ **深度支持**: 专为 Typora 和 Obsidian 优化，支持快捷键导出。
+- 🧠 **智能映射**: 自动处理 # 标题到“方正小标宋简体二号”等映射关系。
+- ⚙️ **一键集成**: 提供 Windows 一键配置脚本，自动处理路径与字体检查。
+- 🌐 **跨平台**: 完美支持 Windows、Linux 及 macOS 系统。
+- 🖊️ **深度支持**: 专为 Typora 和 Obsidian 优化，支持快捷键导出。
+
+---
+
+## 💻 图形界面 (Tauri App)
+
+- ✨ **全新 UI**：index.html + styles.css + main.js 三分结构，语义化卡片设计、拖拽/点击均可批量导入 .md。
+- 🧩 **模板管理器**：可视化切换 docx / yaml，自定义路径自动缓存并同步状态。
+- ⚡ **事件驱动**：Rust 端拆分 conversion.rs 与 vents.rs，回传进度、错误与「打开目录」动作。
+
+`ash
+npm install
+npm run tauri dev    # 本地调试图形界面
+npm run tauri build  # 构建安装包
+`
+
+> CLI / 编辑器脚本依旧可用，图形界面只是新增入口。
+
+---
 
 ## 🎯 标题映射规则
 
@@ -66,6 +93,8 @@ pandoc-flow/
 ---
 
 ## 🚀 快速开始
+
+> 💡 也可直接运行图形界面，参考上方“图形界面 (Tauri App)”章节。
 
 ### 1. 环境准备
 - **安装 Pandoc**: [官方下载页面](https://pandoc.org/installing.html)
