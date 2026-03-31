@@ -53,6 +53,11 @@ jobs:
         run: npm install
 
       - name: build tauri app
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        run: npm run tauri build
+
+      - name: publish tauri release
+        if: ${{ startsWith(github.ref, 'refs/tags/v') }}
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
