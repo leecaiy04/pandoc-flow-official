@@ -160,20 +160,73 @@ fn push_unique_path(paths: &mut Vec<PathBuf>, candidate: PathBuf) {
 
 fn build_cli_command(input: &Path, selection: &TemplateSelection, output: &Path) -> String {
     let mut parts = Vec::new();
-    parts.push(format!("pandoc \"{}\"", escape_path(input)));
+    parts.push(format!("pandoc \"{}\"", display_cli_path(input)));
     if let Some(defaults) = selection.defaults.as_ref() {
-        parts.push(format!("-d \"{}\"", escape_path(defaults)));
+        parts.push(format!("-d \"{}\"", display_cli_path(defaults)));
     }
     if let Some(reference_doc) = selection.reference_doc.as_ref() {
         parts.push(format!(
             "--reference-doc \"{}\"",
-            escape_path(reference_doc)
+            display_cli_path(reference_doc)
         ));
     }
-    parts.push(format!("-o \"{}\"", escape_path(output)));
+    parts.push(format!("-o \"{}\"", display_cli_path(output)));
     parts.join(" ")
 }
 
-fn escape_path(path: &Path) -> String {
-    path.to_string_lossy().replace('"', "\\\"")
+fn display_cli_path(path: &Path) -> String {
+    normalize_cli_path(path.to_string_lossy().as_ref()).replace('"', "\\\"")
+}
+
+fn normalize_cli_path(raw: &str) -> String {
+    #[cfg(target_os = "windows")]
+    {
+        if let Some(rest) = raw.strip_prefix(r"\\?\UNC\") {
+            return format!(r"\\{}", rest);
+        }
+
+        if let Some(rest) = raw.strip_prefix(r"\\?\") {
+            return rest.to_string();
+        }
+    }
+
+    raw.to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{build_cli_command, normalize_cli_path, TemplateSelection};
+    use std::path::PathBuf;
+
+    #[test]
+    fn cli_command_keeps_spaces_between_args() {
+        let input = PathBuf::from(r"D:\docs\示例文档.md");
+        let output = PathBuf::from(r"D:\docs\示例文档.docx");
+        let selection = TemplateSelection {
+            defaults: Some(PathBuf::from(r"C:\templates\pandoc-defaults.yaml")),
+            reference_doc: Some(PathBuf::from(r"C:\templates\official-template.docx")),
+        };
+
+        let command = build_cli_command(&input, &selection, &output);
+
+        assert!(command.contains("\"D:\\docs\\示例文档.md\" -d"));
+        assert!(command.contains("pandoc "));
+        assert!(command.contains(" --reference-doc "));
+        assert!(command.contains(" -o "));
+    }
+
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn normalize_cli_path_strips_windows_verbatim_prefix() {
+        assert_eq!(
+            normalize_cli_path(
+                r"\\?\C:\Users\Administrator\AppData\Local\PandocFlow\templates\pandoc-defaults.yaml"
+            ),
+            r"C:\Users\Administrator\AppData\Local\PandocFlow\templates\pandoc-defaults.yaml"
+        );
+        assert_eq!(
+            normalize_cli_path(r"\\?\UNC\server\share\demo.md"),
+            r"\\server\share\demo.md"
+        );
+    }
 }

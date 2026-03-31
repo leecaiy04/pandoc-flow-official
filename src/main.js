@@ -56,8 +56,13 @@ class StatusPanel {
       const button = document.createElement('button');
       button.className = 'btn btn-primary';
       button.textContent = '打开所在目录';
-      button.addEventListener('click', () => {
-        this.invoke('open_folder', { path: fullPath });
+      button.addEventListener('click', async () => {
+        try {
+          await this.invoke('open_folder', { path: fullPath });
+        } catch (error) {
+          console.error('open_folder failed', error);
+          this.showError(error?.message || '打开所在目录失败');
+        }
       });
       this.element.appendChild(button);
     }
@@ -66,9 +71,26 @@ class StatusPanel {
       const helper = document.createElement('div');
       helper.className = 'cli-helper';
       helper.innerHTML = `
-        <div class="cli-helper__label">命令行复现</div>
+        <div class="cli-helper__header">
+          <div class="cli-helper__label">命令行复现</div>
+        </div>
         <pre class="cli-helper__code">${escapeHTML(cliCommand)}</pre>
       `;
+
+      const header = helper.querySelector('.cli-helper__header');
+      const copyButton = document.createElement('button');
+      copyButton.className = 'btn btn-secondary cli-helper__copy';
+      copyButton.type = 'button';
+      copyButton.textContent = '复制命令';
+      copyButton.addEventListener('click', async () => {
+        const copied = await copyText(cliCommand);
+        copyButton.textContent = copied ? '已复制' : '复制失败';
+        window.setTimeout(() => {
+          copyButton.textContent = '复制命令';
+        }, 1600);
+      });
+      header?.appendChild(copyButton);
+
       this.element.appendChild(helper);
     }
   }
@@ -239,6 +261,38 @@ function escapeHTML(value) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+async function copyText(value) {
+  const text = value || '';
+  if (!text) return false;
+
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch (error) {
+    console.warn('Clipboard API unavailable:', error);
+  }
+
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.setAttribute('readonly', 'readonly');
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  textarea.style.pointerEvents = 'none';
+  document.body.appendChild(textarea);
+  textarea.select();
+
+  try {
+    return document.execCommand('copy');
+  } catch (error) {
+    console.warn('execCommand copy failed:', error);
+    return false;
+  } finally {
+    document.body.removeChild(textarea);
+  }
 }
 
 const statusPanel = new StatusPanel(document.getElementById('status'));

@@ -11,37 +11,68 @@ use events::{
     ConvertRequest, ConvertResponse, EVENT_CONVERT_REQUEST, EVENT_CONVERT_RESPONSE,
     EVENT_INITIAL_FILES,
 };
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use tauri::{AppHandle, Emitter, Event, Listener, Runtime};
 use tokio::time::{sleep, Duration};
 
 #[tauri::command]
-fn open_folder(path: String) {
+fn open_folder(path: String) -> Result<(), String> {
     let path = PathBuf::from(path);
     if !path.exists() {
-        return;
+        return Err(format!("路径不存在：{}", path.display()));
     }
 
     #[cfg(target_os = "windows")]
     {
-        Command::new("explorer")
-            .arg("/select,")
-            .arg(&path)
-            .spawn()
-            .ok();
+        let result = if path.is_dir() {
+            Command::new("explorer")
+                .arg(normalize_windows_path(&path))
+                .spawn()
+        } else {
+            Command::new("explorer")
+                .arg(format!(r#"/select,"{}""#, normalize_windows_path(&path)))
+                .spawn()
+        };
+
+        result
+            .map(|_| ())
+            .map_err(|err| format!("打开目录失败：{}", err))?;
     }
 
     #[cfg(target_os = "macos")]
     {
-        Command::new("open").arg("-R").arg(&path).spawn().ok();
+        Command::new("open")
+            .arg("-R")
+            .arg(&path)
+            .spawn()
+            .map(|_| ())
+            .map_err(|err| format!("打开目录失败：{}", err))?;
     }
 
     #[cfg(target_os = "linux")]
     {
         if let Some(parent) = path.parent() {
-            Command::new("xdg-open").arg(parent).spawn().ok();
+            Command::new("xdg-open")
+                .arg(parent)
+                .spawn()
+                .map(|_| ())
+                .map_err(|err| format!("打开目录失败：{}", err))?;
         }
+    }
+
+    Ok(())
+}
+
+#[cfg(target_os = "windows")]
+fn normalize_windows_path(path: &Path) -> String {
+    let raw = path.to_string_lossy();
+    if let Some(rest) = raw.strip_prefix(r"\\?\UNC\") {
+        format!(r"\\{}", rest)
+    } else if let Some(rest) = raw.strip_prefix(r"\\?\") {
+        rest.to_string()
+    } else {
+        raw.into_owned()
     }
 }
 

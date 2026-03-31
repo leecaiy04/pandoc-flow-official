@@ -197,19 +197,33 @@ body {
   padding: 12px;
   font-size: 12px;
   color: var(--text);
+  user-select: text;
+}
+
+.cli-helper__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
 }
 
 .cli-helper__label {
   font-weight: 600;
-  margin-bottom: 6px;
   color: var(--text-soft);
 }
 
 .cli-helper__code {
   margin: 0;
   white-space: pre-wrap;
-  word-break: break-all;
+  overflow-wrap: anywhere;
+  word-break: normal;
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
   font-size: 11px;
   color: var(--primary);
+  user-select: text;
+}
+
+.cli-helper__copy {
+  flex-shrink: 0;
 }
