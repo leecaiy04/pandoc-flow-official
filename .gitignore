@@ -25,6 +25,7 @@ test.docx
 
 # 📄 自动生成的 Word 文档 (可选，如果是转换后的文件)
 *.docx
+!templates/official-template.docx
 !templates/公文模板.docx
 !templates/reference.docx
 !docs/☆公文格式GB_T 9704—2012.pdf

@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "PandocFlow",
-  "version": "2.3.2",
+  "version": "2.3.3",
   "identifier": "com.leecaiy04.pandoc-flow",
   "build": {
     "beforeBuildCommand": "",
@@ -34,11 +34,13 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "resources": [
-      "../templates",
-      "../scripts",
-      "../fonts"
-    ],
+    "resources": {
+      "../templates/pandoc-defaults.yaml": "templates/pandoc-defaults.yaml",
+      "../templates/official-template.docx": "templates/official-template.docx",
+      "../templates/reference.docx": "templates/reference.docx",
+      "../scripts/": "scripts/",
+      "../fonts/": "fonts/"
+    },
     "category": "Productivity",
     "longDescription": "Converts Markdown to GB/T 9704-2012 Official Word Documents.",
     "shortDescription": "One-click Pandoc Document Converter",

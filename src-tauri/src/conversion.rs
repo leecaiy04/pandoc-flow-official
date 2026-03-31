@@ -3,6 +3,10 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use tauri::{path::BaseDirectory, AppHandle, Manager, Runtime};
 
+const DEFAULTS_RESOURCE_PATH: &str = "templates/pandoc-defaults.yaml";
+const PRIMARY_REFERENCE_DOC_RESOURCE_PATH: &str = "templates/official-template.docx";
+const LEGACY_REFERENCE_DOC_RESOURCE_PATH: &str = "templates/reference.docx";
+
 #[derive(Debug, Default)]
 struct TemplateSelection {
     defaults: Option<PathBuf>,
@@ -18,7 +22,6 @@ pub struct ConversionResult {
 pub fn convert_markdown<R: Runtime>(
     app: &AppHandle<R>,
     input: impl AsRef<Path>,
-    custom_template: Option<String>,
 ) -> Result<ConversionResult> {
     let input_path = input.as_ref();
     if !input_path.exists() {
@@ -26,7 +29,7 @@ pub fn convert_markdown<R: Runtime>(
     }
 
     let output_path = input_path.with_extension("docx");
-    let templates = resolve_templates(app, custom_template)?;
+    let templates = resolve_builtin_templates(app)?;
 
     let mut cmd = Command::new("pandoc");
     cmd.arg(input_path);
@@ -61,60 +64,98 @@ pub fn convert_markdown<R: Runtime>(
     }
 }
 
-fn resolve_templates<R: Runtime>(
-    app: &AppHandle<R>,
-    custom_template: Option<String>,
-) -> Result<TemplateSelection> {
-    if let Some(custom) = custom_template {
-        let path = PathBuf::from(&custom);
-        if !path.exists() {
-            bail!("自定义模板不存在：{}", custom);
-        }
-
-        let is_yaml = path
-            .extension()
-            .and_then(|ext| ext.to_str())
-            .map(|ext| matches!(ext.to_lowercase().as_str(), "yaml" | "yml"))
-            .unwrap_or(false);
-
-        if is_yaml {
-            return Ok(TemplateSelection {
-                defaults: Some(path),
-                reference_doc: None,
-            });
-        } else {
-            return Ok(TemplateSelection {
-                defaults: None,
-                reference_doc: Some(path),
-            });
-        }
-    }
-
-    let resolver = app.path();
-    let resource_dir = resolver.resource_dir().unwrap_or_default();
-    let defaults = resolver
-        .resolve("templates/pandoc-defaults.yaml", BaseDirectory::Resource)
-        .map_err(|err| {
-            anyhow!(
-                "找不到内置 Pandoc 配置：templates/pandoc-defaults.yaml。资源目录：{}。错误：{}",
-                resource_dir.display(),
-                err
-            )
-        })?;
-    let reference_doc = resolver
-        .resolve("templates/official-template.docx", BaseDirectory::Resource)
-        .map_err(|err| {
-            anyhow!(
-                "找不到内置 Word 模板：templates/official-template.docx。资源目录：{}。错误：{}",
-                resource_dir.display(),
-                err
-            )
-        })?;
-
+fn resolve_builtin_templates<R: Runtime>(app: &AppHandle<R>) -> Result<TemplateSelection> {
+    let defaults = resolve_builtin_defaults(app)?;
+    let reference_doc = resolve_builtin_reference_doc(app)?;
     Ok(TemplateSelection {
         defaults: Some(defaults),
         reference_doc: Some(reference_doc),
     })
+}
+
+fn resolve_builtin_defaults<R: Runtime>(app: &AppHandle<R>) -> Result<PathBuf> {
+    resolve_required_resource(app, "内置 Pandoc 配置", &[DEFAULTS_RESOURCE_PATH])
+}
+
+fn resolve_builtin_reference_doc<R: Runtime>(app: &AppHandle<R>) -> Result<PathBuf> {
+    resolve_required_resource(
+        app,
+        "内置 Word 模板",
+        &[
+            PRIMARY_REFERENCE_DOC_RESOURCE_PATH,
+            LEGACY_REFERENCE_DOC_RESOURCE_PATH,
+        ],
+    )
+}
+
+fn resolve_required_resource<R: Runtime>(
+    app: &AppHandle<R>,
+    label: &str,
+    relative_paths: &[&str],
+) -> Result<PathBuf> {
+    let mut attempted_paths = Vec::new();
+
+    for relative_path in relative_paths {
+        for candidate in collect_resource_candidates(app, relative_path) {
+            attempted_paths.push(candidate.display().to_string());
+            if candidate.is_file() {
+                return Ok(candidate);
+            }
+        }
+    }
+
+    let resource_dir = app.path().resource_dir().unwrap_or_default();
+    let attempted_paths = if attempted_paths.is_empty() {
+        "无".to_string()
+    } else {
+        attempted_paths.join(" | ")
+    };
+
+    bail!(
+        "找不到{}。候选资源：{}。资源目录：{}。尝试路径：{}",
+        label,
+        relative_paths.join(", "),
+        resource_dir.display(),
+        attempted_paths
+    )
+}
+
+fn collect_resource_candidates<R: Runtime>(
+    app: &AppHandle<R>,
+    relative_path: &str,
+) -> Vec<PathBuf> {
+    let resolver = app.path();
+    let mut candidates = Vec::new();
+
+    if let Ok(resolved) = resolver.resolve(relative_path, BaseDirectory::Resource) {
+        push_unique_path(&mut candidates, resolved);
+    }
+
+    if let Ok(resource_dir) = resolver.resource_dir() {
+        push_unique_path(&mut candidates, resource_dir.join(relative_path));
+    }
+
+    #[cfg(debug_assertions)]
+    {
+        let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        push_unique_path(&mut candidates, manifest_dir.join("..").join(relative_path));
+
+        if let Ok(current_dir) = std::env::current_dir() {
+            push_unique_path(&mut candidates, current_dir.join(relative_path));
+
+            if let Some(parent) = current_dir.parent() {
+                push_unique_path(&mut candidates, parent.join(relative_path));
+            }
+        }
+    }
+
+    candidates
+}
+
+fn push_unique_path(paths: &mut Vec<PathBuf>, candidate: PathBuf) {
+    if !paths.iter().any(|existing| existing == &candidate) {
+        paths.push(candidate);
+    }
 }
 
 fn build_cli_command(input: &Path, selection: &TemplateSelection, output: &Path) -> String {

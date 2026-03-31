@@ -7,7 +7,6 @@ pub const EVENT_INITIAL_FILES: &str = "initial-files";
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ConvertRequest {
     pub path: String,
-    pub custom_template: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

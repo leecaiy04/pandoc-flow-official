@@ -85,12 +85,9 @@ fn build_convert_response<R: Runtime>(
     app: &AppHandle<R>,
     request: ConvertRequest,
 ) -> ConvertResponse {
-    let ConvertRequest {
-        path,
-        custom_template,
-    } = request;
+    let ConvertRequest { path } = request;
 
-    match convert_markdown(app, &path, custom_template) {
+    match convert_markdown(app, &path) {
         Ok(result) => {
             let file_name = result
                 .output_path

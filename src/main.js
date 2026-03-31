@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'custom_template_path';
+const LEGACY_TEMPLATE_STORAGE_KEY = 'custom_template_path';
 
 function waitForTauri(timeout = 7000) {
   if (window.__TAURI__) {
@@ -17,61 +17,6 @@ function waitForTauri(timeout = 7000) {
       }
     }, 50);
   });
-}
-
-class TemplateManager {
-  constructor({ storageKey, displayEl, resetButton, openDialog }) {
-    this.storageKey = storageKey;
-    this.displayEl = displayEl;
-    this.resetButton = resetButton;
-    this.openDialog = openDialog;
-    this.current = window.localStorage.getItem(storageKey);
-    this.render();
-  }
-
-  get value() {
-    return this.current || null;
-  }
-
-  async pickTemplate() {
-    if (!this.openDialog) return;
-    const selection = await this.openDialog({
-      multiple: false,
-      filters: [{ name: 'Word/Config', extensions: ['docx', 'yaml', 'yml'] }],
-    }).catch(() => null);
-
-    if (!selection) return;
-    const path = typeof selection === 'string' ? selection : selection?.path;
-    if (!path) return;
-
-    this.setTemplate(path);
-  }
-
-  setTemplate(path) {
-    this.current = path;
-    window.localStorage.setItem(this.storageKey, path);
-    this.render();
-  }
-
-  clear() {
-    this.current = null;
-    window.localStorage.removeItem(this.storageKey);
-    this.render();
-  }
-
-  render() {
-    if (!this.displayEl) return;
-    if (this.current) {
-      const fileName = getFileName(this.current);
-      this.displayEl.textContent = fileName;
-      this.displayEl.title = this.current;
-      if (this.resetButton) this.resetButton.style.display = 'inline-block';
-    } else {
-      this.displayEl.textContent = '内置默认模板';
-      this.displayEl.title = '内置默认模板';
-      if (this.resetButton) this.resetButton.style.display = 'none';
-    }
-  }
 }
 
 class StatusPanel {
@@ -195,12 +140,6 @@ class PandocApp {
     this.api = api;
     this.statusPanel = statusPanel;
     this.statusPanel.setInvoker(api.invoke);
-    this.templateManager = new TemplateManager({
-      storageKey: STORAGE_KEY,
-      displayEl: document.getElementById('template-name'),
-      resetButton: document.getElementById('reset-template'),
-      openDialog: api.openDialog,
-    });
     this.dropZone = new DropZone(document.getElementById('drop-zone'), {
       onRequestDialog: () => this.selectMarkdownFiles(),
       onDrop: (paths) => this.handleFiles(paths),
@@ -208,14 +147,6 @@ class PandocApp {
   }
 
   async init() {
-    document
-      .getElementById('select-template')
-      ?.addEventListener('click', () => this.templateManager.pickTemplate());
-
-    document
-      .getElementById('reset-template')
-      ?.addEventListener('click', () => this.templateManager.clear());
-
     try {
       await this.api.listen('tauri://drag-drop', (event) => {
         this.dropZone.setHover(false);
@@ -266,10 +197,7 @@ class PandocApp {
     for (const path of paths) {
       this.statusPanel.showProcessing(path);
       try {
-        await this.api.emit('markdown-conversion-request', {
-          path,
-          custom_template: this.templateManager.value,
-        });
+        await this.api.emit('markdown-conversion-request', { path });
       } catch (error) {
         console.error('emit failed', error);
         this.statusPanel.showError(
@@ -315,6 +243,7 @@ function escapeHTML(value) {
 
 const statusPanel = new StatusPanel(document.getElementById('status'));
 statusPanel.showIdle();
+window.localStorage.removeItem(LEGACY_TEMPLATE_STORAGE_KEY);
 
 (async () => {
   try {

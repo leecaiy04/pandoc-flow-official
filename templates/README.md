@@ -7,7 +7,7 @@
 | 文件名 | 描述 | 用途 | 状态 |
 |--------|------|------|------|
 | `official-template.docx` | **主要模板** | 公文格式转换的基础模板 | ✅ 正常 |
-| `reference.docx` | Pandoc参考文档 | Pandoc转换的参考文件 | ✅ 正常 |
+| `reference.docx` | 兼容副本 | 旧文件名兼容与恢复兜底 | ✅ 保留 |
 
 ## 🔧 模板使用说明
 
@@ -26,9 +26,9 @@
 
 ### reference.docx
 **作用**:
-- Pandoc转换时的样式参考
-- 备份模板文件
-- 可用于恢复模板设置
+- 兼容旧版本对 `reference.docx` 的引用
+- 作为模板恢复与排障时的兜底副本
+- 不再作为主运行时入口
 
 ## 📏 模板规格
 
@@ -100,7 +100,7 @@ copy official-template.docx official-template_backup_$(date +%Y%m%d).docx
 ### 更新步骤
 1. 修改样式设置
 2. 测试转换效果
-3. 更新reference.docx
+3. 同步更新 `reference.docx` 兼容副本
 4. 记录变更日志
 
 ## 🚨 故障排除
@@ -108,7 +108,7 @@ copy official-template.docx official-template_backup_$(date +%Y%m%d).docx
 ### 模板损坏
 **症状**: 转换后的文档格式混乱
 **解决**:
-1. 使用reference.docx恢复
+1. 使用 `reference.docx` 恢复
 2. 重新创建模板文件
 3. 重新设置样式
 

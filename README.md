@@ -28,7 +28,7 @@ pandoc-flow/
 ├── 📘 README.md                    # 项目入口说明 (本文件)
 ├── 🌐 src/                         # 桌面端前端 (Tauri)
 │   ├── index.html                  # 语义化界面外壳
-│   ├── main.js                     # 拖拽 & 模板管理逻辑
+│   ├── main.js                     # 拖拽与转换状态逻辑
 │   └── styles.css                  # 独立主题样式
 ├── 🦀 src-tauri/                   # Rust 后端
 │   ├── src/conversion.rs           # Pandoc 调用与模板解析
@@ -41,7 +41,7 @@ pandoc-flow/
 ├── 🗂️ templates/                   # 核心格式模板
 │   ├── official-template.docx      # Word 核心样式母版 ⭐
 │   ├── pandoc-defaults.yaml       # Pandoc 统一配置参数 ⚙️
-│   └── reference.docx              # 备用参考文档
+│   └── reference.docx              # 兼容保留的旧模板别名
 ├── 📚 docs/                        # 深度文档库
 │   ├── Typora详细配置教程.md       # Typora 完备集成指南
 │   ├── Obsidian导出配置.md         # Obsidian 插件集成方案
@@ -67,7 +67,7 @@ pandoc-flow/
 ## 💻 图形界面 (Tauri App)
 
 - ✨ **全新 UI**：index.html + styles.css + main.js 三分结构，语义化卡片设计、拖拽/点击均可批量导入 .md。
-- 🧩 **模板管理器**：可视化切换 docx / yaml，自定义路径自动缓存并同步状态。
+- 📦 **内置资源固定**：图形界面始终绑定内置 `official-template.docx` 与 `pandoc-defaults.yaml`，避免打包后路径漂移。
 - ⚡ **事件驱动**：Rust 端拆分 conversion.rs 与 vents.rs，回传进度、错误与「打开目录」动作。
 
 `ash

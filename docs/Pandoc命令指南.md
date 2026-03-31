@@ -69,8 +69,13 @@ pandoc "input.md" \
 **解决：** 重新创建模板文件并正确设置样式
 
 ### 问题4：本地命令正常，打包后字体格式不对
-**原因：** 仅使用 `-d pandoc-defaults.yaml`，但没有显式传入 `--reference-doc`；当工作目录变化时，相对模板路径可能失效。
-**解决：** 始终使用 `-d "templates/pandoc-defaults.yaml" --reference-doc="templates/official-template.docx"`。
+**原因：**
+1. 仅使用 `-d pandoc-defaults.yaml`，但没有显式传入 `--reference-doc`
+2. 打包后资源目录与项目工作目录不同，不能依赖相对路径碰巧生效
+
+**解决：**
+1. 始终使用 `-d "templates/pandoc-defaults.yaml" --reference-doc="templates/official-template.docx"`
+2. Tauri 图形界面固定使用内置资源，不再允许只替换其中一半模板参数
 
 ## 转换脚本使用
 
