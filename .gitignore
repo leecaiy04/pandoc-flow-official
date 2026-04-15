@@ -36,3 +36,8 @@ node_modules/
 src-tauri/target/
 src-tauri/gen/
 target-cache/
+
+# ☁️ 部署数据 (Docker 持久化卷)
+deploy/npm-data/
+deploy/sunpanel-data/
+deploy/.env

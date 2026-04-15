@@ -152,6 +152,20 @@ scripts\convert_doc.bat examples/示例文档.md output/测试输出.docx
 
 ---
 
+## ☁️ 云端部署 (Cloudflare + NPM + SunPanel)
+
+通过 Docker 一键部署 **Nginx Proxy Manager** 和 **SunPanel** 导航面板，配合 **Cloudflare** 实现域名 HTTPS 访问。
+
+```bash
+cd deploy/
+cp .env.example .env   # 填入你的域名和 CF Token
+docker compose up -d   # 启动服务
+```
+
+详细部署指南请参阅 👉 [deploy/README.md](deploy/README.md)
+
+---
+
 ## 📄 许可证
 本项目遵循 [MIT License](LICENSE)。
 

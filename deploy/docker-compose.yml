@@ -1,0 +1,53 @@
+version: "3.8"
+
+services:
+  # ========================
+  # Nginx Proxy Manager
+  # 反向代理管理器 - 管理面板 :81
+  # ========================
+  npm:
+    image: jc21/nginx-proxy-manager:latest
+    container_name: nginx-proxy-manager
+    restart: unless-stopped
+    ports:
+      - "80:80"       # HTTP 入口
+      - "443:443"     # HTTPS 入口 (原端口 50000 的服务通过此端口以 HTTPS 对外)
+      - "81:81"       # NPM 管理面板
+    volumes:
+      - ./npm-data/data:/data
+      - ./npm-data/letsencrypt:/etc/letsencrypt
+    environment:
+      - TZ=${TZ:-Asia/Shanghai}
+    networks:
+      - proxy-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:81"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # ========================
+  # SunPanel 服务导航面板
+  # 默认端口 :3002
+  # ========================
+  sunpanel:
+    image: hslr/sun-panel:latest
+    container_name: sun-panel
+    restart: unless-stopped
+    ports:
+      - "3002:3002"   # SunPanel Web UI
+    volumes:
+      - ./sunpanel-data:/app/conf
+    environment:
+      - TZ=${TZ:-Asia/Shanghai}
+    networks:
+      - proxy-network
+    depends_on:
+      npm:
+        condition: service_healthy
+
+networks:
+  proxy-network:
+    name: proxy-network
+    driver: bridge
