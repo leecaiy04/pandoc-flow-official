@@ -178,9 +178,10 @@ echo 配置文件: %config_file%
 echo.
 echo 💡 使用说明:
 echo # 文档标题 (方正小标宋简体)
-echo ## 一级标题 (黑体)
-echo ### 二级标题 (楷体)
-echo #### 三级标题 (仿宋)
+echo ## 一、正文第一层 (黑体)
+echo ### （一）正文第二层 (楷体)
+echo #### 1. 正文第三层 (仿宋)
+echo ##### （1）正文第四层 (仿宋)
 echo.
 echo 📖 详细教程请查看: Typora详细配置教程.md
 echo.

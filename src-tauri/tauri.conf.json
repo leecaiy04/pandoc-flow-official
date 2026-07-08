@@ -36,6 +36,7 @@
     ],
     "resources": {
       "../templates/pandoc-defaults.yaml": "templates/pandoc-defaults.yaml",
+      "../templates/official-document.lua": "templates/official-document.lua",
       "../templates/official-template.docx": "templates/official-template.docx",
       "../templates/reference.docx": "templates/reference.docx",
       "../scripts/": "scripts/",

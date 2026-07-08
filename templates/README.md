@@ -8,6 +8,7 @@
 |--------|------|------|------|
 | `official-template.docx` | **主要模板** | 公文格式转换的基础模板 | ✅ 正常 |
 | `reference.docx` | 兼容副本 | 旧文件名兼容与恢复兜底 | ✅ 保留 |
+| `official-document.lua` | 层级过滤器 | 将 Markdown 标题映射为公文标题和正文层级 | ✅ 正常 |
 
 ## 🔧 模板使用说明
 
@@ -18,11 +19,12 @@
 - 定义各级标题和正文的字体格式
 
 **包含的样式**:
-- 标题1: 文档标题 (#)
-- 标题2: 一级标题 (##)
-- 标题3: 二级标题 (###)
-- 标题4: 三级标题 (####)
-- 正文: 普通文本
+- Title: 文档标题 (`#`)
+- heading 1: 正文第一层 (`##`)
+- heading 2: 正文第二层 (`###`)
+- heading 3: 正文第三层 (`####`)
+- heading 4: 正文第四层 (`#####`)
+- Body Text: 普通正文
 
 ### reference.docx
 **作用**:
@@ -43,10 +45,10 @@
 ### 字体规范
 | 元素 | 字体 | 字号 | 样式 |
 |------|------|------|------|
-| 文档标题 | 方正小标宋简体 | 二号(22pt) | 加粗居中 |
-| 一级标题 | 黑体 | 三号(16pt) | 加粗左对齐 |
-| 二级标题 | 楷体_GB2312 | 三号(16pt) | 加粗左对齐 |
-| 三级标题 | 仿宋_GB2312 | 三号(16pt) | 加粗左对齐 |
+| 文档标题 (`#`) | 方正小标宋简体 | 二号(22pt) | 加粗居中 |
+| 正文第一层 (`##`) | 黑体 | 三号(16pt) | 左对齐 |
+| 正文第二层 (`###`) | 楷体_GB2312 | 三号(16pt) | 左对齐 |
+| 正文第三/四层 (`####`/`#####`) | 仿宋_GB2312 | 三号(16pt) | 左对齐 |
 | 正文 | 仿宋_GB2312 | 三号(16pt) | 常规 |
 
 ## 🔍 模板检查
@@ -59,9 +61,9 @@
 ### 检查清单
 - [ ] 页面边距设置正确
 - [ ] 文档标题样式为方正小标宋简体
-- [ ] 一级标题样式为黑体
-- [ ] 二级标题样式为楷体_GB2312
-- [ ] 三级标题样式为仿宋_GB2312
+- [ ] 正文第一层样式为黑体
+- [ ] 正文第二层样式为楷体_GB2312
+- [ ] 正文第三/四层样式为仿宋_GB2312
 - [ ] 正文样式为仿宋_GB2312
 - [ ] 正文字号正确（三号）
 - [ ] 标题字号正确（二号/三号）
@@ -141,7 +143,7 @@ copy official-template.docx official-template_backup_$(date +%Y%m%d).docx
 ### 快速测试
 ```bash
 # 使用模板测试转换
-pandoc ../examples/test.md -d ../templates/pandoc-defaults.yaml --reference-doc=../templates/official-template.docx -o test_output.docx
+pandoc ../examples/test.md -d ../templates/pandoc-defaults.yaml --reference-doc=../templates/official-template.docx --lua-filter=../templates/official-document.lua -o test_output.docx
 ```
 
 ### 模板验证

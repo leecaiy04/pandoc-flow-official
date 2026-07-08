@@ -57,7 +57,7 @@ pandoc --version
 ```
 格式名称：公文格式 Word (Pandoc)
 命令：pandoc
-参数：-d "{项目根目录}\templates\pandoc-defaults.yaml" --reference-doc "{项目根目录}\templates\official-template.docx" "${currentFilePath}" -o "${currentFilePath}.docx"
+参数：-d "{项目根目录}\templates\pandoc-defaults.yaml" --reference-doc "{项目根目录}\templates\official-template.docx" --lua-filter "{项目根目录}\templates\official-document.lua" "${currentFilePath}" -o "${currentFilePath}.docx"
 工作目录：{项目根目录}
 ```
 
@@ -88,7 +88,7 @@ h1 {
     line-height: 1.2;
 }
 
-/* 一级标题 (对应 ## ) */
+/* 正文第一层 (对应 ## ) */
 h2 {
     font-family: "黑体", "SimHei", "Microsoft YaHei", sans-serif;
     font-size: 16pt;
@@ -98,7 +98,7 @@ h2 {
     line-height: 1.5;
 }
 
-/* 二级标题 (对应 ### ) */
+/* 正文第二层 (对应 ### ) */
 h3 {
     font-family: "楷体_GB2312", "KaiTi", "Microsoft YaHei", sans-serif;
     font-size: 16pt;
@@ -108,7 +108,7 @@ h3 {
     line-height: 1.5;
 }
 
-/* 三级标题 (对应 #### ) */
+/* 正文第三层 (对应 #### ) */
 h4 {
     font-family: "仿宋_GB2312", "FangSong", "Microsoft YaHei", sans-serif;
     font-size: 16pt;
@@ -118,10 +118,10 @@ h4 {
     line-height: 1.5;
 }
 
-/* 四级标题 (对应 ##### ) */
+/* 正文第四层 (对应 ##### ) */
 h5 {
     font-family: "仿宋_GB2312", "FangSong", "Microsoft YaHei", sans-serif;
-    font-size: 14pt;
+    font-size: 16pt;
     font-weight: bold;
     text-align: left;
     margin: 12pt 0 8pt 0;
@@ -314,8 +314,9 @@ a:hover {
 2. 使用配置的导出功能
 3. 检查生成的Word文档：
    - ✅ 标题为方正小标宋简体
-   - ✅ 一级标题为黑体
-   - ✅ 二级标题为楷体
+   - ✅ 正文第一层为黑体
+   - ✅ 正文第二层为楷体
+   - ✅ 正文第三/四层为仿宋
    - ✅ 正文为仿宋
    - ✅ 正确的字号和对齐
 

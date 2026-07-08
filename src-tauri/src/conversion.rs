@@ -6,11 +6,13 @@ use tauri::{path::BaseDirectory, AppHandle, Manager, Runtime};
 const DEFAULTS_RESOURCE_PATH: &str = "templates/pandoc-defaults.yaml";
 const PRIMARY_REFERENCE_DOC_RESOURCE_PATH: &str = "templates/official-template.docx";
 const LEGACY_REFERENCE_DOC_RESOURCE_PATH: &str = "templates/reference.docx";
+const OFFICIAL_DOCUMENT_FILTER_RESOURCE_PATH: &str = "templates/official-document.lua";
 
 #[derive(Debug, Default)]
 struct TemplateSelection {
     defaults: Option<PathBuf>,
     reference_doc: Option<PathBuf>,
+    lua_filter: Option<PathBuf>,
 }
 
 #[derive(Debug)]
@@ -42,6 +44,10 @@ pub fn convert_markdown<R: Runtime>(
         cmd.arg("--reference-doc").arg(reference_doc);
     }
 
+    if let Some(lua_filter) = templates.lua_filter.as_ref() {
+        cmd.arg("--lua-filter").arg(lua_filter);
+    }
+
     cmd.arg("-o").arg(&output_path);
 
     let output = cmd
@@ -67,9 +73,11 @@ pub fn convert_markdown<R: Runtime>(
 fn resolve_builtin_templates<R: Runtime>(app: &AppHandle<R>) -> Result<TemplateSelection> {
     let defaults = resolve_builtin_defaults(app)?;
     let reference_doc = resolve_builtin_reference_doc(app)?;
+    let lua_filter = resolve_builtin_lua_filter(app)?;
     Ok(TemplateSelection {
         defaults: Some(defaults),
         reference_doc: Some(reference_doc),
+        lua_filter: Some(lua_filter),
     })
 }
 
@@ -85,6 +93,14 @@ fn resolve_builtin_reference_doc<R: Runtime>(app: &AppHandle<R>) -> Result<PathB
             PRIMARY_REFERENCE_DOC_RESOURCE_PATH,
             LEGACY_REFERENCE_DOC_RESOURCE_PATH,
         ],
+    )
+}
+
+fn resolve_builtin_lua_filter<R: Runtime>(app: &AppHandle<R>) -> Result<PathBuf> {
+    resolve_required_resource(
+        app,
+        "内置公文层级过滤器",
+        &[OFFICIAL_DOCUMENT_FILTER_RESOURCE_PATH],
     )
 }
 
@@ -170,6 +186,12 @@ fn build_cli_command(input: &Path, selection: &TemplateSelection, output: &Path)
             display_cli_path(reference_doc)
         ));
     }
+    if let Some(lua_filter) = selection.lua_filter.as_ref() {
+        parts.push(format!(
+            "--lua-filter \"{}\"",
+            display_cli_path(lua_filter)
+        ));
+    }
     parts.push(format!("-o \"{}\"", display_cli_path(output)));
     parts.join(" ")
 }
@@ -205,6 +227,7 @@ mod tests {
         let selection = TemplateSelection {
             defaults: Some(PathBuf::from(r"C:\templates\pandoc-defaults.yaml")),
             reference_doc: Some(PathBuf::from(r"C:\templates\official-template.docx")),
+            lua_filter: None,
         };
 
         let command = build_cli_command(&input, &selection, &output);
@@ -213,6 +236,22 @@ mod tests {
         assert!(command.contains("pandoc "));
         assert!(command.contains(" --reference-doc "));
         assert!(command.contains(" -o "));
+    }
+
+    #[test]
+    fn cli_command_includes_official_document_lua_filter() {
+        let input = PathBuf::from(r"D:\docs\示例文档.md");
+        let output = PathBuf::from(r"D:\docs\示例文档.docx");
+        let selection = TemplateSelection {
+            defaults: Some(PathBuf::from(r"C:\templates\pandoc-defaults.yaml")),
+            reference_doc: Some(PathBuf::from(r"C:\templates\official-template.docx")),
+            lua_filter: Some(PathBuf::from(r"C:\templates\official-document.lua")),
+        };
+
+        let command = build_cli_command(&input, &selection, &output);
+
+        assert!(command.contains(" --lua-filter "));
+        assert!(command.contains(r#""C:\templates\official-document.lua""#));
     }
 
     #[cfg(target_os = "windows")]

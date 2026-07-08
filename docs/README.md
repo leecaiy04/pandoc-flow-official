@@ -9,9 +9,10 @@
 | Markdown 语法 | Word 样式 | 字体 | 字号 | 属性 | 说明 |
 |---------------|----------|------|------|------|------|
 | `# 标题`      | 文档标题 | 方正小标宋简体 | 二号(22pt) | 居中 | 公文正式标题 |
-| `## 标题`     | 一级标题 | 黑体 | 三号(16pt) | 左对齐 | 主要章节标题 |
-| `### 标题`    | 二级标题 | 楷体_GB2312 | 三号(16pt) | 左对齐 | 次级章节标题 |
-| `#### 标题`   | 三级标题 | 仿宋_GB2312 | 三号(16pt) | 左对齐 | 三级章节标题 |
+| `## 一、标题` | 正文第一层 | 黑体 | 三号(16pt) | 左对齐 | 第一层结构 |
+| `### （一）标题` | 正文第二层 | 楷体_GB2312 | 三号(16pt) | 左对齐 | 第二层结构 |
+| `#### 1. 标题` | 正文第三层 | 仿宋_GB2312 | 三号(16pt) | 左对齐 | 第三层结构 |
+| `##### （1）标题` | 正文第四层 | 仿宋_GB2312 | 三号(16pt) | 左对齐 | 第四层结构 |
 | 普通文本      | 正文     | 仿宋_GB2312 | 三号(16pt) | 首行缩进 | 正文内容 |
 
 ## 🚀 快速开始
@@ -40,6 +41,7 @@ scripts\install_typora_config.bat
 - `templates/official-template.docx`: 包含所有样式的 Word 模板。
 - `templates/reference.docx`: 兼容保留的旧模板副本，供迁移期兜底。
 - `templates/pandoc-defaults.yaml`: Pandoc 统一配置参数。
+- `templates/official-document.lua`: Markdown 到公文层级的 Pandoc Lua 过滤器。
 - `docs/Typora详细配置教程.md`: 针对 Typora 用户的深度指南。
 - `examples/示例文档.md`: 标注了正确格式的 MD 示例文件。
 
@@ -59,7 +61,7 @@ for %f in (*.md) do scripts\convert_doc.bat "%f"
 ## 🚨 常见问题
 
 - **转换出来的字体不对?** 请确保系统中已安装“方正小标宋简体”、“楷体_GB2312”等字体。
-- **手动运行 pandoc 时样式偶尔失效?** 请同时传入 `-d templates/pandoc-defaults.yaml` 和 `--reference-doc templates/official-template.docx`；Tauri 安装包内部也固定走这组资源。
+- **手动运行 pandoc 时样式偶尔失效?** 请同时传入 `-d templates/pandoc-defaults.yaml`、`--reference-doc templates/official-template.docx` 和 `--lua-filter templates/official-document.lua`；Tauri 安装包内部也固定走这组资源。
 - **命令报错 "pandoc not found"?** 请安装 [Pandoc](https://pandoc.org) 并配置 PATH 环境变量。
 - **想要修改默认标题字体?** 修改 `templates/pandoc-defaults.yaml` 中的 `variables` 部分。
 

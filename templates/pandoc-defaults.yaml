@@ -4,15 +4,13 @@ to: docx
 standalone: true
 highlight-style: pygments
 
-metadata:
-  title: "公文文档"
-
 variables:
   # Standard fonts for official documents
   mainfont: "仿宋_GB2312"
   CJKmainfont: "方正小标宋简体"
-  # Support for secondary fonts via styles in reference-doc
-  # Heading 1 -> 方正小标宋简体
-  # Heading 2 -> 黑体
-  # Heading 3 -> 楷体_GB2312
-  # Heading 4 -> 仿宋_GB2312
+  # Heading styles are shifted by templates/official-document.lua:
+  # #     -> Title (方正小标宋简体 二号 居中)
+  # ##    -> heading 1 (黑体 三号)
+  # ###   -> heading 2 (楷体_GB2312 三号)
+  # ####  -> heading 3 (仿宋_GB2312 三号)
+  # ##### -> heading 4 (仿宋_GB2312 三号)

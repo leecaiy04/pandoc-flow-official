@@ -8,6 +8,7 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PROJECT_ROOT="$( dirname "$SCRIPT_DIR" )"
 DEFAULTS_FILE="$PROJECT_ROOT/templates/pandoc-defaults.yaml"
 TEMPLATE="$PROJECT_ROOT/templates/official-template.docx"
+LUA_FILTER="$PROJECT_ROOT/templates/official-document.lua"
 
 if [ $# -lt 1 ]; then
     echo "使用方法: $0 <输入文件.md> [输出文件.docx]"
@@ -15,9 +16,10 @@ if [ $# -lt 1 ]; then
     echo ""
     echo "标题映射："
     echo "# → 文档标题（方正小标宋简体二号）"
-    echo "## → 一级标题（黑体三号）"
-    echo "### → 二级标题（楷体三号）"
-    echo "#### → 三级标题（仿宋三号）"
+    echo "## → 正文第一层（一、，黑体三号）"
+    echo "### → 正文第二层（（一），楷体三号）"
+    echo "#### → 正文第三层（1.，仿宋三号）"
+    echo "##### → 正文第四层（（1），仿宋三号）"
     exit 1
 fi
 
@@ -44,6 +46,11 @@ if [ ! -f "$TEMPLATE" ]; then
     exit 1
 fi
 
+if [ ! -f "$LUA_FILTER" ]; then
+    echo "错误: 公文层级过滤器 '$LUA_FILTER' 不存在"
+    exit 1
+fi
+
 # 检查Pandoc是否安装
 if ! command -v pandoc &> /dev/null; then
     echo "错误: 未找到 pandoc 命令，请确保已安装 Pandoc。"
@@ -56,15 +63,16 @@ if [ -f "$DEFAULTS_FILE" ]; then
     pandoc "$input_file" \
         -d "$DEFAULTS_FILE" \
         --reference-doc="$TEMPLATE" \
+        --lua-filter="$LUA_FILTER" \
         --output="$output_file"
 else
     pandoc "$input_file" \
         --reference-doc="$TEMPLATE" \
+        --lua-filter="$LUA_FILTER" \
         --from=markdown \
         --to=docx \
         --output="$output_file" \
         --highlight-style=pygments \
-        --metadata title="公文文档" \
         --variable mainfont="仿宋_GB2312" \
         --variable CJKmainfont="方正小标宋简体"
 fi
@@ -75,9 +83,9 @@ if [ $? -eq 0 ]; then
     echo "------------------------------------------"
     echo "提示: 请在Word中确认以下样式是否正确应用："
     echo "1. 文档标题 (#) -> 方正小标宋简体二号居中"
-    echo "2. 一级标题 (##) -> 黑体三号"
-    echo "3. 二级标题 (###) -> 楷体三号"
-    echo "4. 三级标题 (####) -> 仿宋三号"
+    echo "2. 正文第一层 (##) -> 黑体三号"
+    echo "3. 正文第二层 (###) -> 楷体三号"
+    echo "4. 正文第三/四层 (####/#####) -> 仿宋三号"
     echo "5. 正文 -> 仿宋三号 (首行缩进2字符)"
     echo "------------------------------------------"
 else

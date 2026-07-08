@@ -7,6 +7,7 @@ REM 使用方法: scripts\convert_doc.bat <输入文件.md> [输出文件.docx]
 set "PROJECT_ROOT=%~dp0.."
 set "DEFAULTS_FILE=%PROJECT_ROOT%\templates\pandoc-defaults.yaml"
 set "TEMPLATE=%PROJECT_ROOT%\templates\official-template.docx"
+set "LUA_FILTER=%PROJECT_ROOT%\templates\official-document.lua"
 
 if "%~1"=="" (
     echo 使用方法: %0 ^<输入文件.md^> [输出文件.docx]
@@ -14,9 +15,10 @@ if "%~1"=="" (
     echo.
     echo 标题映射：
     echo # → 文档标题（方正小标宋简体二号）
-    echo ## → 一级标题（黑体三号）
-    echo ### → 二级标题（楷体三号）
-    echo #### → 三级标题（仿宋三号）
+    echo ## → 正文第一层（一、，黑体三号）
+    echo ### → 正文第二层（（一），楷体三号）
+    echo #### → 正文第三层（1.，仿宋三号）
+    echo ##### → 正文第四层（（1），仿宋三号）
     exit /b 1
 )
 
@@ -39,6 +41,11 @@ if not exist "%TEMPLATE%" (
     exit /b 1
 )
 
+if not exist "%LUA_FILTER%" (
+    echo 错误: 公文层级过滤器 '%LUA_FILTER%' 不存在
+    exit /b 1
+)
+
 REM 检查Pandoc是否安装
 where pandoc >nul 2>&1
 if %errorlevel% neq 0 (
@@ -49,9 +56,9 @@ if %errorlevel% neq 0 (
 echo 正在转换: "%input_file%" 到 "%output_file%"...
 
 if exist "%DEFAULTS_FILE%" (
-    pandoc "%input_file%" -d "%DEFAULTS_FILE%" --reference-doc="%TEMPLATE%" -o "%output_file%"
+    pandoc "%input_file%" -d "%DEFAULTS_FILE%" --reference-doc="%TEMPLATE%" --lua-filter="%LUA_FILTER%" -o "%output_file%"
 ) else (
-    pandoc "%input_file%" --reference-doc="%TEMPLATE%" -o "%output_file%"
+    pandoc "%input_file%" --reference-doc="%TEMPLATE%" --lua-filter="%LUA_FILTER%" -o "%output_file%"
 )
 
 if %errorlevel% equ 0 (
